@@ -1,0 +1,2629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>RuneScape 5</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Times New Roman',serif;color:#ff0;}
+#gameContainer{display:flex;flex-direction:column;width:100%;height:100%;position:relative;}
+#topBar{height:36px;background:linear-gradient(180deg,#3a2a1a 0%,#2a1a0a 100%);border-bottom:2px solid #5a4a2a;display:flex;align-items:center;padding:0 10px;gap:15px;z-index:10;}
+.stat-orb{display:flex;align-items:center;gap:4px;font-size:12px;color:#0f0;}
+.orb-icon{width:24px;height:24px;border-radius:50%;border:2px solid #5a4a2a;display:flex;align-items:center;justify-content:center;font-size:14px;background:#1a0a00;}
+.orb-bar{width:60px;height:14px;background:#1a0a00;border:1px solid #5a4a2a;border-radius:2px;overflow:hidden;position:relative;}
+.orb-fill{height:100%;transition:width .3s;border-radius:1px;}
+.orb-text{position:absolute;width:100%;text-align:center;font-size:10px;line-height:14px;color:#fff;text-shadow:1px 1px 0 #000;}
+#mainArea{display:flex;flex:1;overflow:hidden;}
+#viewport{flex:1;position:relative;cursor:crosshair;}
+#gameCanvas{width:100%;height:100%;display:block;}
+#minimapContainer{position:absolute;top:4px;right:4px;width:140px;height:140px;border:3px solid #5a4a2a;border-radius:50%;overflow:hidden;background:#0a0a0a;z-index:5;box-shadow:0 0 10px rgba(0,0,0,.8);}
+#minimapCanvas{width:100%;height:100%;border-radius:50%;}
+#rightPanel{width:220px;background:linear-gradient(180deg,#3a2a1a 0%,#1a0a00 100%);border-left:2px solid #5a4a2a;display:flex;flex-direction:column;z-index:10;}
+.tab-bar{display:flex;background:#2a1a0a;border-bottom:2px solid #5a4a2a;}
+.tab-btn{flex:1;padding:6px 2px;text-align:center;font-size:18px;cursor:pointer;background:#2a1a0a;border:none;border-right:1px solid #5a4a2a;color:#aa8;transition:background .2s;}
+.tab-btn:hover,.tab-btn.active{background:#4a3a1a;color:#ff0;}
+#panelContent{flex:1;overflow-y:auto;padding:4px;scrollbar-width:thin;scrollbar-color:#5a4a2a #1a0a00;}
+#panelContent::-webkit-scrollbar{width:6px;}
+#panelContent::-webkit-scrollbar-track{background:#1a0a00;}
+#panelContent::-webkit-scrollbar-thumb{background:#5a4a2a;border-radius:3px;}
+.panel{display:none;}
+.panel.active{display:block;}
+#chatBox{height:120px;background:#1a0a00;border-top:2px solid #5a4a2a;display:flex;flex-direction:column;z-index:10;}
+#chatMessages{flex:1;overflow-y:auto;padding:4px 8px;font-size:12px;line-height:1.4;scrollbar-width:thin;scrollbar-color:#5a4a2a #1a0a00;}
+#chatMessages::-webkit-scrollbar{width:4px;}
+#chatMessages::-webkit-scrollbar-thumb{background:#5a4a2a;}
+.chat-msg{margin:1px 0;}
+.chat-msg.system{color:#00bfff;}
+.chat-msg.combat{color:#f44;}
+.chat-msg.skill{color:#0f0;}
+.chat-msg.levelup{color:#ff0;font-weight:bold;font-size:14px;}
+.chat-msg.item{color:#a0f;}
+.chat-msg.npc{color:#ff0;}
+.chat-msg.quest{color:#f80;}
+#chatInput{display:flex;border-top:1px solid #5a4a2a;}
+#chatInput input{flex:1;background:#0a0500;border:none;color:#ff0;padding:4px 8px;font-family:inherit;font-size:12px;outline:none;}
+.skill-row{display:flex;align-items:center;padding:2px 4px;border-bottom:1px solid #2a1a0a;cursor:pointer;transition:background .15s;}
+.skill-row:hover{background:#2a1a0a;}
+.skill-icon{width:24px;height:24px;margin-right:6px;display:flex;align-items:center;justify-content:center;font-size:16px;background:#1a0a00;border:1px solid #5a4a2a;border-radius:3px;}
+.skill-info{flex:1;}
+.skill-name{font-size:11px;color:#aa8;}
+.skill-level{font-size:13px;color:#ff0;font-weight:bold;}
+.skill-xp-bar{width:100%;height:4px;background:#1a0a00;border-radius:2px;margin-top:1px;}
+.skill-xp-fill{height:100%;background:linear-gradient(90deg,#0a0,#0f0);border-radius:2px;transition:width .3s;}
+.inv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:4px;}
+.inv-slot{aspect-ratio:1;background:#1a0a00;border:1px solid #5a4a2a;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:#aa8;position:relative;transition:background .15s;text-align:center;padding:2px;overflow:hidden;}
+.inv-slot:hover{background:#2a1a0a;border-color:#aa8;}
+.inv-slot .item-icon{font-size:20px;line-height:1;}
+.inv-slot .item-qty{position:absolute;top:1px;left:3px;font-size:9px;color:#ff0;text-shadow:1px 1px 0 #000;}
+.inv-slot .item-name{font-size:8px;color:#aa8;line-height:1;margin-top:1px;}
+.equip-panel{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;}
+.equip-row{display:flex;gap:2px;justify-content:center;}
+.equip-slot{width:44px;height:44px;background:#1a0a00;border:2px solid #5a4a2a;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:8px;color:#555;transition:background .15s;text-align:center;}
+.equip-slot:hover{background:#2a1a0a;}
+.equip-slot .item-icon{font-size:22px;}
+.equip-slot .slot-label{font-size:7px;color:#553;margin-top:1px;}
+.combat-stats{padding:8px;font-size:11px;color:#aa8;line-height:1.8;}
+.combat-stats span{color:#0f0;}
+#contextMenu{position:fixed;background:#2a1a0a;border:2px solid #5a4a2a;border-radius:4px;z-index:100;display:none;min-width:120px;box-shadow:0 4px 12px rgba(0,0,0,.8);}
+#contextMenu div{padding:4px 12px;cursor:pointer;font-size:12px;color:#ff0;border-bottom:1px solid #3a2a1a;}
+#contextMenu div:last-child{border:none;}
+#contextMenu div:hover{background:#4a3a1a;}
+#dialogBox{position:absolute;bottom:130px;left:50%;transform:translateX(-50%);background:linear-gradient(180deg,#3a2a1a,#1a0a00);border:3px solid #5a4a2a;border-radius:8px;padding:12px 16px;max-width:400px;z-index:20;display:none;box-shadow:0 4px 20px rgba(0,0,0,.8);}
+#dialogBox .npc-name{color:#ff0;font-weight:bold;font-size:14px;margin-bottom:4px;}
+#dialogBox .npc-text{color:#aa8;font-size:12px;margin-bottom:8px;line-height:1.4;}
+#dialogBox .dialog-options{display:flex;flex-direction:column;gap:4px;}
+#dialogBox .dialog-option{padding:4px 8px;background:#2a1a0a;border:1px solid #5a4a2a;color:#0ff;cursor:pointer;font-size:11px;border-radius:3px;transition:background .15s;}
+#dialogBox .dialog-option:hover{background:#4a3a1a;}
+#shopPanel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(180deg,#3a2a1a,#1a0a00);border:3px solid #5a4a2a;border-radius:8px;padding:12px;width:360px;z-index:25;display:none;box-shadow:0 4px 20px rgba(0,0,0,.8);}
+#shopPanel .shop-title{color:#ff0;font-weight:bold;font-size:14px;text-align:center;margin-bottom:8px;border-bottom:1px solid #5a4a2a;padding-bottom:4px;}
+#shopPanel .shop-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;max-height:250px;overflow-y:auto;}
+#shopPanel .shop-item{background:#1a0a00;border:1px solid #5a4a2a;border-radius:3px;padding:4px;text-align:center;cursor:pointer;transition:background .15s;}
+#shopPanel .shop-item:hover{background:#2a1a0a;}
+#shopPanel .shop-item .item-icon{font-size:22px;}
+#shopPanel .shop-item .item-price{font-size:9px;color:#ff0;}
+#shopPanel .close-btn{position:absolute;top:4px;right:8px;color:#f44;cursor:pointer;font-size:16px;}
+#bankPanel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(180deg,#3a2a1a,#1a0a00);border:3px solid #5a4a2a;border-radius:8px;padding:12px;width:420px;max-height:80vh;z-index:25;display:none;box-shadow:0 4px 20px rgba(0,0,0,.8);}
+#bankPanel .bank-title{color:#ff0;font-weight:bold;font-size:14px;text-align:center;margin-bottom:8px;border-bottom:1px solid #5a4a2a;padding-bottom:4px;}
+#bankPanel .bank-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;max-height:300px;overflow-y:auto;}
+#bankPanel .close-btn{position:absolute;top:4px;right:8px;color:#f44;cursor:pointer;font-size:16px;}
+#loadingScreen{position:fixed;top:0;left:0;width:100%;height:100%;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;transition:opacity 1s;}
+#loadingScreen h1{color:#ff0;font-size:36px;text-shadow:0 0 20px #f80,0 0 40px #f40;margin-bottom:20px;}
+#loadingScreen .subtitle{color:#aa8;font-size:14px;margin-bottom:30px;}
+.load-bar{width:300px;height:16px;background:#1a0a00;border:2px solid #5a4a2a;border-radius:8px;overflow:hidden;}
+.load-fill{height:100%;width:0%;background:linear-gradient(90deg,#f80,#ff0);border-radius:6px;transition:width .3s;}
+#loadingScreen .load-text{color:#aa8;font-size:11px;margin-top:8px;}
+#soundToggle{position:absolute;top:8px;left:8px;z-index:50;background:#2a1a0a;border:1px solid #5a4a2a;color:#ff0;padding:4px 8px;cursor:pointer;border-radius:3px;font-size:12px;}
+#tooltip{position:fixed;background:#1a0a00;border:2px solid #5a4a2a;border-radius:4px;padding:4px 8px;color:#ff0;font-size:11px;z-index:200;display:none;pointer-events:none;max-width:200px;box-shadow:0 2px 8px rgba(0,0,0,.8);}
+#tooltip .tt-name{font-weight:bold;color:#ff0;}
+#tooltip .tt-desc{color:#aa8;font-size:10px;}
+</style>
+</head>
+<body>
+<div id="loadingScreen">
+<h1>🔥 RuneScape 5 🔥</h1>
+<div class="subtitle">So good it skipped RS4</div>
+<div class="load-bar"><div class="load-fill" id="loadFill"></div></div>
+<div class="load-text" id="loadText">Initializing...</div>
+</div>
+<div id="gameContainer" style="display:none;">
+<div id="topBar">
+<div class="stat-orb"><div class="orb-icon">❤️</div><div class="orb-bar"><div class="orb-fill" id="hpBar" style="width:100%;background:linear-gradient(90deg,#a00,#f00);"></div><div class="orb-text" id="hpText">10/10</div></div></div>
+<div class="stat-orb"><div class="orb-icon">🙏</div><div class="orb-bar"><div class="orb-fill" id="prayBar" style="width:100%;background:linear-gradient(90deg,#06a,#0af);"></div><div class="orb-text" id="prayText">1/1</div></div></div>
+<div class="stat-orb"><div class="orb-icon">🏃</div><div class="orb-bar"><div class="orb-fill" id="runBar" style="width:100%;background:linear-gradient(90deg,#a80,#ff0);"></div><div class="orb-text" id="runText">100%</div></div></div>
+<div style="flex:1;text-align:center;color:#aa8;font-size:11px;">⚔️ Total Level: <span id="totalLevel" style="color:#ff0;">32</span> | 💰 <span id="coinDisplay" style="color:#ff0;">0</span></div>
+<button id="soundToggle" style="position:static;">🔊</button>
+</div>
+<div id="mainArea">
+<div id="viewport">
+<canvas id="gameCanvas"></canvas>
+<div id="minimapContainer"><canvas id="minimapCanvas" width="140" height="140"></canvas></div>
+</div>
+<div id="rightPanel">
+<div class="tab-bar">
+<div class="tab-btn active" data-tab="stats" title="Stats">📊</div>
+<div class="tab-btn" data-tab="inventory" title="Inventory">🎒</div>
+<div class="tab-btn" data-tab="equipment" title="Equipment">⚔️</div>
+<div class="tab-btn" data-tab="prayer" title="Prayer">🙏</div>
+<div class="tab-btn" data-tab="magic" title="Magic">🔮</div>
+<div class="tab-btn" data-tab="quests" title="Quests">📜</div>
+</div>
+<div id="panelContent">
+<div class="panel active" id="statsPanel"></div>
+<div class="panel" id="inventoryPanel"></div>
+<div class="panel" id="equipmentPanel"></div>
+<div class="panel" id="prayerPanel"></div>
+<div class="panel" id="magicPanel"></div>
+<div class="panel" id="questsPanel"></div>
+</div>
+</div>
+</div>
+<div id="chatBox">
+<div id="chatMessages"></div>
+<div id="chatInput"><input type="text" placeholder="Press Enter to chat..." id="chatField"></div>
+</div>
+</div>
+<div id="contextMenu"></div>
+<div id="dialogBox"></div>
+<div id="shopPanel"><div class="close-btn" onclick="closeShop()">✕</div><div class="shop-title"></div><div class="shop-grid"></div></div>
+<div id="bankPanel"><div class="close-btn" onclick="closeBank()">✕</div><div class="bank-title">Bank</div><div class="bank-grid"></div></div>
+<div id="tooltip"></div>
+
+<script>
+// ============================================================
+// RUNESCAPE 5 - THE ULTIMATE BROWSER MMORPG
+// ============================================================
+"use strict";
+
+// --- CONSTANTS ---
+const TILE = 48;
+const MAP_W = 80, MAP_H = 80;
+const TICK_MS = 600;
+const INV_SIZE = 28;
+const HALF_TILE = TILE / 2;
+
+// --- CANVAS SETUP ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const mmCanvas = document.getElementById('minimapCanvas');
+const mmCtx = mmCanvas.getContext('2d');
+
+function resizeCanvas() {
+  const vp = document.getElementById('viewport');
+  canvas.width = vp.clientWidth;
+  canvas.height = vp.clientHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+
+// --- XP SYSTEM ---
+const xpTable = [0];
+(function buildXpTable() {
+  let total = 0;
+  for (let lvl = 1; lvl < 99; lvl++) {
+    total += Math.floor(lvl + 300 * Math.pow(2, lvl / 7)) / 4;
+    xpTable.push(Math.floor(total));
+  }
+})();
+function xpToLevel(xp) {
+  for (let i = 1; i < 99; i++) { if (xp < xpTable[i]) return i; }
+  return 99;
+}
+function xpForLevel(lvl) { return lvl <= 1 ? 0 : xpTable[lvl - 1]; }
+
+// --- ITEM DATABASE ---
+const ITEMS = {
+  coins: {name:'Coins',icon:'🪙',stackable:true,desc:'Gold coins'},
+  bones: {name:'Bones',icon:'🦴',desc:'Bury for Prayer XP'},
+  big_bones: {name:'Big Bones',icon:'🦴',desc:'More Prayer XP',prayerXp:15},
+  feather: {name:'Feather',icon:'🪶',stackable:true,desc:'Used in Fletching'},
+  raw_chicken: {name:'Raw Chicken',icon:'🍗',desc:'Cook it',cookLvl:1,cookedId:'cooked_chicken',cookXp:30},
+  cooked_chicken: {name:'Cooked Chicken',icon:'🍖',desc:'Heals 3 HP',heal:3},
+  raw_beef: {name:'Raw Beef',icon:'🥩',desc:'Cook it',cookLvl:1,cookedId:'cooked_beef',cookXp:30},
+  cooked_beef: {name:'Cooked Beef',icon:'🥩',desc:'Heals 3 HP',heal:3},
+  cowhide: {name:'Cowhide',icon:'🟫',desc:'Can be tanned'},
+  goblin_mail: {name:'Goblin Mail',icon:'📧',desc:'Smelly armor'},
+  // Ores
+  copper_ore: {name:'Copper Ore',icon:'🟤',desc:'Smelt into bronze',smeltId:'bronze_bar',smeltPair:'tin_ore',smithXp:6},
+  tin_ore: {name:'Tin Ore',icon:'⬜',desc:'Smelt into bronze'},
+  iron_ore: {name:'Iron Ore',icon:'🟫',desc:'Smelt into iron',smeltId:'iron_bar',smithXp:12},
+  coal: {name:'Coal',icon:'⬛',desc:'Used in smelting',stackable:true},
+  mithril_ore: {name:'Mithril Ore',icon:'🔵',desc:'Smelt into mithril',smeltId:'mithril_bar',smeltPair:'coal',smeltPairQty:4,smithXp:30},
+  adamant_ore: {name:'Adamant Ore',icon:'🟢',desc:'Smelt into adamant',smeltId:'adamant_bar',smeltPair:'coal',smeltPairQty:6,smithXp:37},
+  runite_ore: {name:'Runite Ore',icon:'🔷',desc:'Smelt into runite',smeltId:'rune_bar',smeltPair:'coal',smeltPairQty:8,smithXp:50},
+  // Bars
+  bronze_bar: {name:'Bronze Bar',icon:'🟤',desc:'Smith into equipment'},
+  iron_bar: {name:'Iron Bar',icon:'⬜',desc:'Smith into equipment'},
+  steel_bar: {name:'Steel Bar',icon:'⚪',desc:'Smith into equipment'},
+  mithril_bar: {name:'Mithril Bar',icon:'🔵',desc:'Smith into equipment'},
+  adamant_bar: {name:'Adamant Bar',icon:'🟩',desc:'Smith into equipment'},
+  rune_bar: {name:'Rune Bar',icon:'🔷',desc:'Smith into equipment'},
+  // Logs
+  logs: {name:'Logs',icon:'🪵',desc:'Normal logs',fmLvl:1,fmXp:40},
+  oak_logs: {name:'Oak Logs',icon:'🪵',desc:'Oak logs',fmLvl:15,fmXp:60},
+  willow_logs: {name:'Willow Logs',icon:'🪵',desc:'Willow logs',fmLvl:30,fmXp:90},
+  yew_logs: {name:'Yew Logs',icon:'🪵',desc:'Yew logs',fmLvl:60,fmXp:202},
+  magic_logs: {name:'Magic Logs',icon:'🪵',desc:'Magic logs',fmLvl:75,fmXp:303},
+  // Fish
+  raw_shrimp: {name:'Raw Shrimp',icon:'🦐',desc:'Cook it',cookLvl:1,cookedId:'cooked_shrimp',cookXp:30},
+  cooked_shrimp: {name:'Cooked Shrimp',icon:'🦐',desc:'Heals 3 HP',heal:3},
+  raw_trout: {name:'Raw Trout',icon:'🐟',desc:'Cook it',cookLvl:15,cookedId:'cooked_trout',cookXp:70},
+  cooked_trout: {name:'Cooked Trout',icon:'🐟',desc:'Heals 7 HP',heal:7},
+  raw_salmon: {name:'Raw Salmon',icon:'🐟',desc:'Cook it',cookLvl:25,cookedId:'cooked_salmon',cookXp:90},
+  cooked_salmon: {name:'Cooked Salmon',icon:'🐟',desc:'Heals 9 HP',heal:9},
+  raw_lobster: {name:'Raw Lobster',icon:'🦞',desc:'Cook it',cookLvl:40,cookedId:'cooked_lobster',cookXp:120},
+  cooked_lobster: {name:'Cooked Lobster',icon:'🦞',desc:'Heals 12 HP',heal:12},
+  raw_swordfish: {name:'Raw Swordfish',icon:'🐡',desc:'Cook it',cookLvl:50,cookedId:'cooked_swordfish',cookXp:140},
+  cooked_swordfish: {name:'Cooked Swordfish',icon:'🐡',desc:'Heals 14 HP',heal:14},
+  raw_shark: {name:'Raw Shark',icon:'🦈',desc:'Cook it',cookLvl:80,cookedId:'cooked_shark',cookXp:210},
+  cooked_shark: {name:'Cooked Shark',icon:'🦈',desc:'Heals 20 HP',heal:20},
+  // Runes
+  air_rune: {name:'Air Rune',icon:'💨',stackable:true,desc:'Basic magic rune'},
+  fire_rune: {name:'Fire Rune',icon:'🔥',stackable:true,desc:'Fire magic rune'},
+  water_rune: {name:'Water Rune',icon:'💧',stackable:true,desc:'Water magic rune'},
+  earth_rune: {name:'Earth Rune',icon:'🪨',stackable:true,desc:'Earth magic rune'},
+  chaos_rune: {name:'Chaos Rune',icon:'🌀',stackable:true,desc:'Chaos magic rune'},
+  death_rune: {name:'Death Rune',icon:'💀',stackable:true,desc:'Death magic rune'},
+  limpwurt_root: {name:'Limpwurt Root',icon:'🌿',desc:'Herblore ingredient'},
+  // Weapons - Bronze
+  bronze_sword: {name:'Bronze Sword',icon:'🗡️',desc:'A bronze sword',slot:'weapon',atkBonus:4,strBonus:3,atkLvl:1},
+  bronze_axe: {name:'Bronze Axe',icon:'🪓',desc:'Chop trees & fight',slot:'weapon',atkBonus:2,strBonus:3,atkLvl:1,wcBonus:1},
+  bronze_pickaxe: {name:'Bronze Pickaxe',icon:'⛏️',desc:'Mine rocks & fight',slot:'weapon',atkBonus:2,strBonus:2,atkLvl:1,mineBonus:1},
+  // Iron
+  iron_sword: {name:'Iron Sword',icon:'🗡️',desc:'An iron sword',slot:'weapon',atkBonus:8,strBonus:7,atkLvl:1},
+  iron_axe: {name:'Iron Axe',icon:'🪓',desc:'Iron axe',slot:'weapon',atkBonus:5,strBonus:6,atkLvl:1,wcBonus:2},
+  iron_pickaxe: {name:'Iron Pickaxe',icon:'⛏️',desc:'Iron pickaxe',slot:'weapon',atkBonus:4,strBonus:5,atkLvl:1,mineBonus:2},
+  // Steel
+  steel_sword: {name:'Steel Sword',icon:'🗡️',desc:'A steel sword',slot:'weapon',atkBonus:12,strBonus:11,atkLvl:5},
+  steel_axe: {name:'Steel Axe',icon:'🪓',desc:'Steel axe',slot:'weapon',atkBonus:8,strBonus:9,atkLvl:5,wcBonus:3},
+  steel_pickaxe: {name:'Steel Pickaxe',icon:'⛏️',desc:'Steel pickaxe',slot:'weapon',atkBonus:7,strBonus:8,atkLvl:5,mineBonus:3},
+  // Mithril
+  mithril_sword: {name:'Mithril Sword',icon:'🗡️',desc:'A mithril sword',slot:'weapon',atkBonus:18,strBonus:16,atkLvl:20},
+  mithril_axe: {name:'Mithril Axe',icon:'🪓',desc:'Mithril axe',slot:'weapon',atkBonus:13,strBonus:14,atkLvl:20,wcBonus:4},
+  mithril_pickaxe: {name:'Mithril Pickaxe',icon:'⛏️',desc:'Mithril pickaxe',slot:'weapon',atkBonus:12,strBonus:13,atkLvl:20,mineBonus:4},
+  // Adamant
+  adamant_sword: {name:'Adamant Sword',icon:'🗡️',desc:'An adamant sword',slot:'weapon',atkBonus:24,strBonus:22,atkLvl:30},
+  adamant_axe: {name:'Adamant Axe',icon:'🪓',desc:'Adamant axe',slot:'weapon',atkBonus:18,strBonus:20,atkLvl:30,wcBonus:5},
+  adamant_pickaxe: {name:'Adamant Pickaxe',icon:'⛏️',desc:'Adamant pickaxe',slot:'weapon',atkBonus:17,strBonus:18,atkLvl:30,mineBonus:5},
+  // Rune
+  rune_sword: {name:'Rune Sword',icon:'🗡️',desc:'A rune sword',slot:'weapon',atkBonus:32,strBonus:30,atkLvl:40},
+  rune_axe: {name:'Rune Axe',icon:'🪓',desc:'Rune axe',slot:'weapon',atkBonus:26,strBonus:28,atkLvl:40,wcBonus:6},
+  rune_pickaxe: {name:'Rune Pickaxe',icon:'⛏️',desc:'Rune pickaxe',slot:'weapon',atkBonus:24,strBonus:26,atkLvl:40,mineBonus:6},
+  // Dragon
+  dragon_sword: {name:'Dragon Sword',icon:'🗡️',desc:'A dragon sword!',slot:'weapon',atkBonus:42,strBonus:40,atkLvl:60},
+  dragon_axe: {name:'Dragon Axe',icon:'🪓',desc:'Dragon axe!',slot:'weapon',atkBonus:34,strBonus:36,atkLvl:60,wcBonus:7},
+  dragon_pickaxe: {name:'Dragon Pickaxe',icon:'⛏️',desc:'Dragon pickaxe!',slot:'weapon',atkBonus:32,strBonus:34,atkLvl:60,mineBonus:7},
+  // Helmets
+  bronze_helm: {name:'Bronze Helm',icon:'⛑️',desc:'Bronze helmet',slot:'head',defBonus:2,defLvl:1},
+  iron_helm: {name:'Iron Helm',icon:'⛑️',desc:'Iron helmet',slot:'head',defBonus:4,defLvl:1},
+  steel_helm: {name:'Steel Helm',icon:'⛑️',desc:'Steel helmet',slot:'head',defBonus:6,defLvl:5},
+  mithril_helm: {name:'Mithril Helm',icon:'⛑️',desc:'Mithril helmet',slot:'head',defBonus:9,defLvl:20},
+  adamant_helm: {name:'Adamant Helm',icon:'⛑️',desc:'Adamant helmet',slot:'head',defBonus:12,defLvl:30},
+  rune_helm: {name:'Rune Helm',icon:'⛑️',desc:'Rune full helm',slot:'head',defBonus:16,defLvl:40},
+  rune_med_helm: {name:'Rune Med Helm',icon:'⛑️',desc:'Rune med helm',slot:'head',defBonus:14,defLvl:40},
+  // Platebodies
+  bronze_plate: {name:'Bronze Platebody',icon:'🛡️',desc:'Bronze platebody',slot:'body',defBonus:5,defLvl:1},
+  iron_plate: {name:'Iron Platebody',icon:'🛡️',desc:'Iron platebody',slot:'body',defBonus:10,defLvl:1},
+  steel_plate: {name:'Steel Platebody',icon:'🛡️',desc:'Steel platebody',slot:'body',defBonus:15,defLvl:5},
+  mithril_plate: {name:'Mithril Platebody',icon:'🛡️',desc:'Mithril platebody',slot:'body',defBonus:22,defLvl:20},
+  adamant_plate: {name:'Adamant Platebody',icon:'🛡️',desc:'Adamant platebody',slot:'body',defBonus:30,defLvl:30},
+  rune_plate: {name:'Rune Platebody',icon:'🛡️',desc:'Rune platebody',slot:'body',defBonus:40,defLvl:40},
+  dragon_plate: {name:'Dragon Platebody',icon:'🛡️',desc:'Dragon platebody!',slot:'body',defBonus:55,defLvl:60},
+  // Platelegs
+  bronze_legs: {name:'Bronze Platelegs',icon:'👖',desc:'Bronze platelegs',slot:'legs',defBonus:3,defLvl:1},
+  iron_legs: {name:'Iron Platelegs',icon:'👖',desc:'Iron platelegs',slot:'legs',defBonus:7,defLvl:1},
+  steel_legs: {name:'Steel Platelegs',icon:'👖',desc:'Steel platelegs',slot:'legs',defBonus:11,defLvl:5},
+  mithril_legs: {name:'Mithril Platelegs',icon:'👖',desc:'Mithril platelegs',slot:'legs',defBonus:16,defLvl:20},
+  adamant_legs: {name:'Adamant Platelegs',icon:'👖',desc:'Adamant platelegs',slot:'legs',defBonus:22,defLvl:30},
+  rune_legs: {name:'Rune Platelegs',icon:'👖',desc:'Rune platelegs',slot:'legs',defBonus:30,defLvl:40},
+  // Shields
+  bronze_shield: {name:'Bronze Shield',icon:'🛡️',desc:'Bronze kiteshield',slot:'shield',defBonus:4,defLvl:1},
+  iron_shield: {name:'Iron Shield',icon:'🛡️',desc:'Iron kiteshield',slot:'shield',defBonus:8,defLvl:1},
+  steel_shield: {name:'Steel Shield',icon:'🛡️',desc:'Steel kiteshield',slot:'shield',defBonus:12,defLvl:5},
+  mithril_shield: {name:'Mithril Shield',icon:'🛡️',desc:'Mithril kiteshield',slot:'shield',defBonus:18,defLvl:20},
+  adamant_shield: {name:'Adamant Shield',icon:'🛡️',desc:'Adamant kiteshield',slot:'shield',defBonus:24,defLvl:30},
+  rune_shield: {name:'Rune Shield',icon:'🛡️',desc:'Rune kiteshield',slot:'shield',defBonus:32,defLvl:40},
+};
+
+// --- SKILL DEFINITIONS ---
+const SKILL_LIST = [
+  {id:'attack',name:'Attack',icon:'⚔️'},
+  {id:'strength',name:'Strength',icon:'💪'},
+  {id:'defence',name:'Defence',icon:'🛡️'},
+  {id:'hitpoints',name:'Hitpoints',icon:'❤️'},
+  {id:'mining',name:'Mining',icon:'⛏️'},
+  {id:'smithing',name:'Smithing',icon:'🔨'},
+  {id:'woodcutting',name:'Woodcutting',icon:'🪓'},
+  {id:'firemaking',name:'Firemaking',icon:'🔥'},
+  {id:'fishing',name:'Fishing',icon:'🎣'},
+  {id:'cooking',name:'Cooking',icon:'🍳'},
+  {id:'prayer',name:'Prayer',icon:'🙏'},
+  {id:'magic',name:'Magic',icon:'🔮'},
+];
+
+// --- TREE/ROCK/FISH DEFINITIONS ---
+const TREE_TYPES = [
+  {id:'normal',name:'Tree',lvl:1,xp:25,logId:'logs',time:4,icon:'🌳',color:'#2a8020'},
+  {id:'oak',name:'Oak Tree',lvl:15,xp:37,logId:'oak_logs',time:6,icon:'🌳',color:'#3a6020'},
+  {id:'willow',name:'Willow Tree',lvl:30,xp:67,logId:'willow_logs',time:8,icon:'🌳',color:'#1a9040'},
+  {id:'yew',name:'Yew Tree',lvl:60,xp:175,logId:'yew_logs',time:12,icon:'🌲',color:'#0a5020'},
+  {id:'magic',name:'Magic Tree',lvl:75,xp:250,logId:'magic_logs',time:16,icon:'🌲',color:'#4040a0'},
+];
+const ROCK_TYPES = [
+  {id:'copper',name:'Copper Rock',lvl:1,xp:17,oreId:'copper_ore',time:3,color:'#b87333'},
+  {id:'tin',name:'Tin Rock',lvl:1,xp:17,oreId:'tin_ore',time:3,color:'#c0c0c0'},
+  {id:'iron',name:'Iron Rock',lvl:15,xp:35,oreId:'iron_ore',time:5,color:'#8b4513'},
+  {id:'coal',name:'Coal Rock',lvl:30,xp:50,oreId:'coal',time:7,color:'#333'},
+  {id:'mithril',name:'Mithril Rock',lvl:55,xp:80,oreId:'mithril_ore',time:10,color:'#4466aa'},
+  {id:'adamant',name:'Adamantite Rock',lvl:70,xp:95,oreId:'adamant_ore',time:13,color:'#44aa44'},
+  {id:'runite',name:'Runite Rock',lvl:85,xp:125,oreId:'runite_ore',time:18,color:'#4488cc'},
+];
+const FISH_TYPES = [
+  {id:'shrimp',name:'Shrimp',lvl:1,xp:10,fishId:'raw_shrimp',time:4},
+  {id:'trout',name:'Trout',lvl:20,xp:50,fishId:'raw_trout',time:6},
+  {id:'salmon',name:'Salmon',lvl:30,xp:70,fishId:'raw_salmon',time:7},
+  {id:'lobster',name:'Lobster',lvl:40,xp:90,fishId:'raw_lobster',time:8},
+  {id:'swordfish',name:'Swordfish',lvl:50,xp:100,fishId:'raw_swordfish',time:10},
+  {id:'shark',name:'Shark',lvl:76,xp:110,fishId:'raw_shark',time:14},
+];
+
+// --- MONSTER DEFINITIONS ---
+const MONSTER_TYPES = {
+  chicken: {name:'Chicken',icon:'🐔',lvl:1,hp:3,maxHit:1,atkSpd:4,xpMod:1,drops:[{id:'feather',qty:[1,5],chance:.9},{id:'bones',qty:1,chance:1},{id:'raw_chicken',qty:1,chance:1}]},
+  cow: {name:'Cow',icon:'🐄',lvl:2,hp:8,maxHit:1,atkSpd:4,xpMod:1,drops:[{id:'cowhide',qty:1,chance:1},{id:'bones',qty:1,chance:1},{id:'raw_beef',qty:1,chance:1}]},
+  goblin: {name:'Goblin',icon:'👺',lvl:5,hp:14,maxHit:2,atkSpd:4,xpMod:1,drops:[{id:'coins',qty:[3,15],chance:.9},{id:'goblin_mail',qty:1,chance:.2},{id:'bones',qty:1,chance:1}]},
+  guard: {name:'Guard',icon:'💂',lvl:21,hp:34,maxHit:4,atkSpd:5,xpMod:1.2,drops:[{id:'coins',qty:[10,50],chance:.8},{id:'iron_sword',qty:1,chance:.1},{id:'iron_helm',qty:1,chance:.08},{id:'bones',qty:1,chance:1}]},
+  hill_giant: {name:'Hill Giant',icon:'🧌',lvl:28,hp:46,maxHit:6,atkSpd:6,xpMod:1.3,drops:[{id:'big_bones',qty:1,chance:1},{id:'limpwurt_root',qty:1,chance:.25},{id:'coins',qty:[20,100],chance:.7},{id:'iron_plate',qty:1,chance:.05}]},
+  lesser_demon: {name:'Lesser Demon',icon:'👿',lvl:82,hp:98,maxHit:12,atkSpd:5,xpMod:1.5,drops:[{id:'coins',qty:[50,300],chance:.8},{id:'rune_med_helm',qty:1,chance:.02},{id:'chaos_rune',qty:[2,8],chance:.4},{id:'death_rune',qty:[1,3],chance:.2},{id:'bones',qty:1,chance:1}]},
+  dragon: {name:'Dragon',icon:'🐉',lvl:110,hp:180,maxHit:20,atkSpd:5,xpMod:2,drops:[{id:'dragon_sword',qty:1,chance:.05},{id:'dragon_plate',qty:1,chance:.02},{id:'coins',qty:[200,1000],chance:1},{id:'big_bones',qty:1,chance:1},{id:'rune_plate',qty:1,chance:.08}]},
+};
+
+// --- NPC DEFINITIONS ---
+const NPC_TYPES = {
+  duke: {name:'Duke Horacio',icon:'👑',dialog:[{text:'Welcome to Lumbridge, adventurer! The world of RS5 is vast.',options:[{text:'What should I do?',next:1},{text:'Thanks!',close:true}]},{text:'Try training your skills! Chop trees, mine rocks, fish, and fight monsters. Visit the bank to store items.',options:[{text:'Where is the bank?',next:2},{text:'Got it!',close:true}]},{text:'The bank is just east of the castle. Look for the 🏦 icon. You can also buy supplies at the General Store.',options:[{text:'Thanks!',close:true}]}]},
+  shop: {name:'Shopkeeper',icon:'🧑‍💼',shop:{name:'General Store',items:[{id:'bronze_sword',price:20},{id:'bronze_axe',price:16},{id:'bronze_pickaxe',price:15},{id:'bronze_helm',price:12},{id:'bronze_plate',price:40},{id:'bronze_legs',price:28},{id:'bronze_shield',price:20},{id:'air_rune',price:4},{id:'fire_rune',price:4},{id:'water_rune',price:4},{id:'earth_rune',price:4}]}},
+  weapon_shop: {name:'Weapons Dealer',icon:'⚔️',shop:{name:'Weapons & Armor',items:[{id:'iron_sword',price:80},{id:'iron_axe',price:65},{id:'iron_pickaxe',price:60},{id:'iron_helm',price:50},{id:'iron_plate',price:160},{id:'iron_legs',price:110},{id:'iron_shield',price:80},{id:'steel_sword',price:400},{id:'steel_axe',price:320},{id:'steel_pickaxe',price:300},{id:'steel_helm',price:250},{id:'steel_plate',price:800},{id:'steel_legs',price:550},{id:'steel_shield',price:400}]}},
+  banker: {name:'Banker',icon:'🏦',bank:true},
+  cook_npc: {name:'Cook',icon:'👨‍🍳',dialog:[{text:'Hello! I\'m the castle cook. If you have raw food, use it on the range nearby to cook it!',options:[{text:'Thanks for the tip!',close:true}]}]},
+  fishing_tutor: {name:'Fishing Tutor',icon:'🎣',dialog:[{text:'Want to learn fishing? Click on a fishing spot near water. Higher Fishing levels let you catch better fish!',options:[{text:'What can I catch?',next:1},{text:'Thanks!',close:true}]},{text:'Start with shrimp (level 1), then trout (20), salmon (30), lobster (40), swordfish (50), and shark (76)!',options:[{text:'Thanks!',close:true}]}]},
+};
+
+// --- MAP TILE TYPES ---
+const T = {
+  GRASS:0, DIRT:1, STONE:2, WATER:3, SAND:4, COBBLE:5,
+  WALL:6, CASTLE_FLOOR:7, BRIDGE:8, DARK_GRASS:9,
+  LAVA:10, WILD_GROUND:11, MARBLE:12, PATH:13
+};
+
+// --- MAP GENERATION ---
+let worldMap = [];
+let worldObjects = []; // {x,y,type,subtype,data}
+
+function generateWorld() {
+  // Initialize with grass
+  worldMap = Array.from({length:MAP_H}, () => Array(MAP_W).fill(T.GRASS));
+  worldObjects = [];
+
+  // Helper
+  const fill = (x1,y1,x2,y2,t) => {
+    for(let y=y1;y<=y2;y++) for(let x=x1;x<=x2;x++) if(x>=0&&x<MAP_W&&y>=0&&y<MAP_H) worldMap[y][x]=t;
+  };
+  const set = (x,y,t) => { if(x>=0&&x<MAP_W&&y>=0&&y<MAP_H) worldMap[y][x]=t; };
+
+  // --- Town Area (center-ish: 25-55, 25-55) ---
+  // Roads
+  fill(30,38,50,40,T.COBBLE); // main E-W road
+  fill(39,28,41,50,T.COBBLE); // main N-S road
+
+  // Castle (35-45, 30-38)
+  fill(35,30,45,37,T.CASTLE_FLOOR);
+  fill(35,30,45,30,T.WALL); fill(35,37,45,37,T.WALL);
+  fill(35,30,35,37,T.WALL); fill(45,30,45,37,T.WALL);
+  set(40,37,T.CASTLE_FLOOR); // entrance
+  set(39,37,T.CASTLE_FLOOR);
+  set(41,37,T.CASTLE_FLOOR);
+  fill(36,31,44,36,T.MARBLE); // interior floor
+
+  // Bank (47-52, 36-40)
+  fill(47,36,52,40,T.CASTLE_FLOOR);
+  fill(47,36,52,36,T.WALL); fill(47,40,52,40,T.WALL);
+  fill(47,36,47,40,T.WALL); fill(52,36,52,40,T.WALL);
+  set(49,40,T.CASTLE_FLOOR); set(50,40,T.CASTLE_FLOOR); // entrance
+
+  // Shop area (33-37, 42-45)
+  fill(33,42,37,45,T.CASTLE_FLOOR);
+  fill(33,42,37,42,T.WALL); fill(33,45,37,45,T.WALL);
+  fill(33,42,33,45,T.WALL); fill(37,42,37,45,T.WALL);
+  set(35,45,T.CASTLE_FLOOR); // entrance
+
+  // Weapon shop (43-47, 42-45)
+  fill(43,42,47,45,T.CASTLE_FLOOR);
+  fill(43,42,47,42,T.WALL); fill(43,45,47,45,T.WALL);
+  fill(43,42,43,45,T.WALL); fill(47,42,47,45,T.WALL);
+  set(45,45,T.CASTLE_FLOOR); // entrance
+
+  // Paths
+  fill(30,39,32,39,T.PATH); fill(51,39,55,39,T.PATH);
+  fill(40,26,40,28,T.PATH); fill(40,49,40,55,T.PATH);
+
+  // --- River (runs N-S on east side) ---
+  for(let y=0;y<MAP_H;y++){
+    let rx = 58 + Math.floor(Math.sin(y*0.15)*2);
+    for(let dx=-1;dx<=1;dx++) set(rx+dx,y,T.WATER);
+    if(y%8<2) set(rx+2,y,T.WATER);
+    if(y%12<3) set(rx-2,y,T.WATER);
+  }
+  // Bridge
+  for(let bx=55;bx<=63;bx++) set(bx,39,T.BRIDGE);
+
+  // --- Lake (SE area) ---
+  for(let y=55;y<65;y++) for(let x=50;x<62;x++){
+    let dx=x-56,dy=y-60;
+    if(dx*dx/36+dy*dy/25<1) set(x,y,T.WATER);
+  }
+
+  // --- Forest (NW: 5-25, 5-25) ---
+  fill(5,5,25,25,T.DARK_GRASS);
+  // Trees
+  const treePositions = [];
+  for(let i=0;i<30;i++){
+    let tx=6+Math.floor(Math.random()*18), ty=6+Math.floor(Math.random()*18);
+    if(worldMap[ty][tx]===T.DARK_GRASS){
+      let treeType = i<12?0:i<20?1:i<25?2:i<28?3:4;
+      worldObjects.push({x:tx,y:ty,type:'tree',subtype:treeType,depleted:false,respawnAt:0});
+      treePositions.push({x:tx,y:ty});
+    }
+  }
+
+  // --- Mining Area (SW: 5-25, 55-75) ---
+  fill(5,55,25,70,T.STONE);
+  fill(5,55,5,70,T.WALL); fill(25,55,25,70,T.WALL);
+  fill(5,55,25,55,T.WALL); fill(5,70,25,70,T.WALL);
+  // Entrance
+  set(15,55,T.STONE); set(16,55,T.STONE);
+  const rockLayout = [
+    {x:8,y:58,t:0},{x:10,y:58,t:0},{x:12,y:58,t:1},{x:14,y:58,t:1},
+    {x:8,y:61,t:2},{x:10,y:61,t:2},{x:12,y:61,t:3},{x:14,y:61,t:3},
+    {x:18,y:58,t:2},{x:20,y:58,t:3},{x:22,y:58,t:3},
+    {x:18,y:61,t:4},{x:20,y:61,t:4},{x:22,y:61,t:5},
+    {x:18,y:64,t:5},{x:20,y:64,t:6},{x:22,y:64,t:6},
+    {x:8,y:64,t:0},{x:10,y:64,t:1},{x:12,y:64,t:2},{x:14,y:64,t:3},
+  ];
+  rockLayout.forEach(r => {
+    worldObjects.push({x:r.x,y:r.y,type:'rock',subtype:r.t,depleted:false,respawnAt:0});
+  });
+
+  // Furnace & Anvil near mine entrance
+  worldObjects.push({x:16,y:53,type:'furnace'});
+  worldObjects.push({x:18,y:53,type:'anvil'});
+
+  // --- Fishing spots along river and lake ---
+  const fishSpots = [
+    {x:56,y:30,t:0},{x:57,y:35,t:0},{x:56,y:45,t:1},{x:57,y:50,t:1},
+    {x:52,y:57,t:2},{x:54,y:59,t:2},{x:55,y:62,t:3},{x:53,y:63,t:3},
+    {x:51,y:60,t:4},{x:56,y:55,t:5},
+  ];
+  fishSpots.forEach(f => {
+    worldObjects.push({x:f.x,y:f.y,type:'fish_spot',subtype:f.t,depleted:false,respawnAt:0});
+  });
+
+  // --- Combat Zones ---
+  // Chickens & Cows near town
+  for(let i=0;i<6;i++) worldObjects.push({x:30+Math.floor(Math.random()*4),y:48+Math.floor(Math.random()*4),type:'monster',subtype:'chicken',data:null});
+  for(let i=0;i<5;i++) worldObjects.push({x:50+Math.floor(Math.random()*4),y:48+Math.floor(Math.random()*4),type:'monster',subtype:'cow',data:null});
+  // Goblins E of river
+  fill(64,35,72,45,T.DIRT);
+  for(let i=0;i<6;i++) worldObjects.push({x:65+Math.floor(Math.random()*6),y:36+Math.floor(Math.random()*8),type:'monster',subtype:'goblin',data:null});
+  // Guards in town
+  worldObjects.push({x:38,y:38,type:'monster',subtype:'guard',data:null});
+  worldObjects.push({x:42,y:38,type:'monster',subtype:'guard',data:null});
+  // Hill Giants (cave area NE)
+  fill(60,8,75,20,T.STONE);
+  for(let i=0;i<5;i++) worldObjects.push({x:62+Math.floor(Math.random()*10),y:10+Math.floor(Math.random()*8),type:'monster',subtype:'hill_giant',data:null});
+  // Lesser Demons
+  fill(5,35,15,50,T.LAVA);
+  fill(8,38,12,47,T.STONE);
+  for(let i=0;i<4;i++) worldObjects.push({x:9+Math.floor(Math.random()*3),y:39+Math.floor(Math.random()*7),type:'monster',subtype:'lesser_demon',data:null});
+
+  // --- Wilderness (top edge) ---
+  fill(0,0,MAP_W-1,4,T.WILD_GROUND);
+  for(let i=0;i<3;i++) worldObjects.push({x:30+Math.floor(Math.random()*20),y:1+Math.floor(Math.random()*3),type:'monster',subtype:'dragon',data:null});
+
+  // --- Grand Exchange (center: 38-42, 20-24) ---
+  fill(35,18,45,24,T.MARBLE);
+  fill(37,19,43,23,T.COBBLE);
+  set(40,21,T.WATER); // fountain
+
+  // --- NPCs ---
+  worldObjects.push({x:40,y:33,type:'npc',subtype:'duke'});
+  worldObjects.push({x:35,y:44,type:'npc',subtype:'shop'});
+  worldObjects.push({x:45,y:44,type:'npc',subtype:'weapon_shop'});
+  worldObjects.push({x:49,y:38,type:'npc',subtype:'banker'});
+  worldObjects.push({x:50,y:38,type:'npc',subtype:'banker'});
+  worldObjects.push({x:38,y:34,type:'npc',subtype:'cook_npc'});
+  worldObjects.push({x:56,y:42,type:'npc',subtype:'fishing_tutor'});
+
+  // Range for cooking
+  worldObjects.push({x:42,y:34,type:'range'});
+
+  // Scatter sand around water edges
+  for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
+    if(worldMap[y][x]!==T.WATER) continue;
+    for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+      let nx=x+dx,ny=y+dy;
+      if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&worldMap[ny][nx]===T.GRASS) worldMap[ny][nx]=T.SAND;
+    }
+  }
+
+  // Init monster data
+  worldObjects.forEach(obj => {
+    if(obj.type==='monster'){
+      const mt = MONSTER_TYPES[obj.subtype];
+      obj.data = {hp:mt.hp,maxHp:mt.hp,spawnX:obj.x,spawnY:obj.y,inCombat:false,target:null,atkTimer:0,dead:false,respawnAt:0,wanderTimer:0};
+    }
+  });
+}
+
+// --- PLAYER ---
+let player = {
+  x: 40, y: 39, // spawn in town
+  targetX: 40, targetY: 39,
+  moveQueue: [],
+  moving: false,
+  moveProgress: 0,
+  fromX: 40, fromY: 39,
+  facing: 2, // 0=N,1=E,2=S,3=W
+  skills: {},
+  inventory: Array(INV_SIZE).fill(null), // {id, qty}
+  bank: [],
+  equipment: {head:null,body:null,legs:null,weapon:null,shield:null},
+  hp: 10, maxHp: 10,
+  prayer: 1, maxPrayer: 1,
+  runEnergy: 100,
+  inCombat: false,
+  combatTarget: null,
+  atkTimer: 0,
+  action: null, // {type, obj, timer, totalTime}
+  dead: false,
+  prayersActive: {},
+};
+
+function initPlayer() {
+  SKILL_LIST.forEach(s => {
+    player.skills[s.id] = {xp: s.id==='hitpoints' ? xpForLevel(10) : 0};
+  });
+  player.hp = 10;
+  player.maxHp = 10;
+  // Starter items
+  addToInventory('bronze_sword', 1);
+  addToInventory('bronze_axe', 1);
+  addToInventory('bronze_pickaxe', 1);
+  addToInventory('coins', 50);
+}
+
+function getSkillLevel(id) { return xpToLevel(player.skills[id].xp); }
+function getTotalLevel() { return SKILL_LIST.reduce((s,sk)=>s+getSkillLevel(sk.id),0); }
+function getCombatLevel() {
+  const atk=getSkillLevel('attack'),str=getSkillLevel('strength'),def=getSkillLevel('defence'),hp=getSkillLevel('hitpoints'),pray=getSkillLevel('prayer'),mag=getSkillLevel('magic');
+  return Math.floor((def+hp+Math.floor(pray/2))/4 + Math.max(Math.floor((atk+str)*0.325), Math.floor(mag*0.325*1.5)));
+}
+
+// --- INVENTORY MANAGEMENT ---
+function addToInventory(itemId, qty=1) {
+  const item = ITEMS[itemId];
+  if(!item) return false;
+  if(item.stackable) {
+    const idx = player.inventory.findIndex(s => s && s.id === itemId);
+    if(idx >= 0) { player.inventory[idx].qty += qty; return true; }
+  }
+  for(let i=0;i<INV_SIZE;i++){
+    if(!player.inventory[i]){
+      player.inventory[i] = {id:itemId, qty};
+      return true;
+    }
+  }
+  chatMsg('Your inventory is full!','system');
+  return false;
+}
+
+function removeFromInventory(slot, qty=1) {
+  if(!player.inventory[slot]) return false;
+  player.inventory[slot].qty -= qty;
+  if(player.inventory[slot].qty <= 0) player.inventory[slot] = null;
+  return true;
+}
+
+function countItem(itemId) {
+  return player.inventory.reduce((s,slot) => slot && slot.id===itemId ? s+slot.qty : s, 0);
+}
+
+function findItemSlot(itemId) {
+  return player.inventory.findIndex(s => s && s.id === itemId);
+}
+
+// --- EQUIPMENT ---
+function getEquipBonus(stat) {
+  let total = 0;
+  Object.values(player.equipment).forEach(itemId => {
+    if(itemId && ITEMS[itemId]) total += (ITEMS[itemId][stat] || 0);
+  });
+  return total;
+}
+
+function equipItem(slot) {
+  const inv = player.inventory[slot];
+  if(!inv) return;
+  const item = ITEMS[inv.id];
+  if(!item || !item.slot) return;
+
+  // Check level requirements
+  if(item.atkLvl && getSkillLevel('attack') < item.atkLvl) {
+    chatMsg(`You need level ${item.atkLvl} Attack to equip this.`,'system');
+    return;
+  }
+  if(item.defLvl && getSkillLevel('defence') < item.defLvl) {
+    chatMsg(`You need level ${item.defLvl} Defence to equip this.`,'system');
+    return;
+  }
+
+  const eqSlot = item.slot;
+  const current = player.equipment[eqSlot];
+  player.equipment[eqSlot] = inv.id;
+  player.inventory[slot] = current ? {id:current, qty:1} : null;
+  chatMsg(`You equip the ${item.name}.`,'item');
+}
+
+function unequipItem(eqSlot) {
+  const itemId = player.equipment[eqSlot];
+  if(!itemId) return;
+  if(!addToInventory(itemId, 1)) return;
+  player.equipment[eqSlot] = null;
+}
+
+// --- CHAT ---
+function chatMsg(text, cls='system') {
+  const div = document.getElementById('chatMessages');
+  const msg = document.createElement('div');
+  msg.className = 'chat-msg ' + cls;
+  msg.textContent = text;
+  div.appendChild(msg);
+  div.scrollTop = div.scrollHeight;
+  // Limit messages
+  while(div.children.length > 200) div.removeChild(div.firstChild);
+}
+
+// --- PARTICLES ---
+let particles = [];
+function addParticle(x,y,type,data={}) {
+  particles.push({x,y,type,life:data.life||60,maxLife:data.life||60,vx:data.vx||0,vy:data.vy||-1,
+    color:data.color||'#ff0',size:data.size||3,text:data.text||'',alpha:1,...data});
+}
+
+function spawnLevelUpParticles(wx,wy) {
+  for(let i=0;i<40;i++){
+    const angle = Math.random()*Math.PI*2;
+    const speed = 1+Math.random()*3;
+    const colors = ['#ff0','#f80','#ff4','#fff','#0ff'];
+    addParticle(wx,wy,'spark',{
+      vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed-2,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      size:2+Math.random()*3, life:40+Math.random()*30
+    });
+  }
+}
+
+function spawnHitSplat(wx,wy,dmg,type='damage') {
+  const color = type==='damage'?'#f00':type==='heal'?'#0f0':'#00f';
+  addParticle(wx,wy-10,'hitsplat',{text:dmg.toString(),color,life:40,vy:-0.5,size:12});
+}
+
+// --- XP GAIN ---
+function gainXp(skillId, amount) {
+  const oldLvl = getSkillLevel(skillId);
+  player.skills[skillId].xp += amount;
+  const newLvl = getSkillLevel(skillId);
+  if(newLvl > oldLvl) {
+    chatMsg(`🎆 Congratulations! Your ${SKILL_LIST.find(s=>s.id===skillId).name} level is now ${newLvl}!`,'levelup');
+    spawnLevelUpParticles(player.x*TILE+HALF_TILE, player.y*TILE+HALF_TILE);
+    if(skillId==='hitpoints'){
+      player.maxHp = newLvl;
+      player.hp = Math.min(player.hp+1, player.maxHp);
+    }
+    if(skillId==='prayer'){
+      player.maxPrayer = newLvl;
+    }
+    playSound('levelup');
+  }
+  if(skillId==='hitpoints'){
+    player.maxHp = getSkillLevel('hitpoints');
+  }
+}
+
+// --- PATHFINDING (simple A*) ---
+function isWalkable(x,y) {
+  if(x<0||x>=MAP_W||y<0||y>=MAP_H) return false;
+  const t = worldMap[y][x];
+  return t !== T.WALL && t !== T.WATER && t !== T.LAVA;
+}
+
+function findPath(sx,sy,tx,ty) {
+  if(!isWalkable(tx,ty)) {
+    // Find nearest walkable
+    for(let r=1;r<=3;r++){
+      for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){
+        if(isWalkable(tx+dx,ty+dy)) { tx+=dx; ty+=dy; r=4; break; }
+      }
+    }
+    if(!isWalkable(tx,ty)) return [];
+  }
+  if(sx===tx&&sy===ty) return [];
+
+  const key = (x,y) => x+','+y;
+  const open = [{x:sx,y:sy,g:0,h:Math.abs(tx-sx)+Math.abs(ty-sy),parent:null}];
+  const closed = new Set();
+  const gMap = new Map();
+  gMap.set(key(sx,sy),0);
+
+  while(open.length > 0) {
+    open.sort((a,b) => (a.g+a.h)-(b.g+b.h));
+    const cur = open.shift();
+    if(cur.x===tx&&cur.y===ty) {
+      const path = [];
+      let n = cur;
+      while(n.parent) { path.unshift({x:n.x,y:n.y}); n = n.parent; }
+      return path;
+    }
+    const ck = key(cur.x,cur.y);
+    if(closed.has(ck)) continue;
+    closed.add(ck);
+
+    const dirs = [{dx:0,dy:-1},{dx:1,dy:0},{dx:0,dy:1},{dx:-1,dy:0}];
+    for(const d of dirs) {
+      const nx=cur.x+d.dx, ny=cur.y+d.dy;
+      if(!isWalkable(nx,ny)) continue;
+      const nk = key(nx,ny);
+      if(closed.has(nk)) continue;
+      const ng = cur.g+1;
+      if(!gMap.has(nk) || ng < gMap.get(nk)) {
+        gMap.set(nk,ng);
+        open.push({x:nx,y:ny,g:ng,h:Math.abs(tx-nx)+Math.abs(ty-ny),parent:cur});
+      }
+    }
+    if(closed.size > 800) break; // limit search
+  }
+  return [];
+}
+
+// --- GAME STATE ---
+let camera = {x:0, y:0};
+let gameTime = 0; // in ticks
+let dayNightCycle = 0; // 0-1000
+let gameTick = 0;
+let lastTickTime = 0;
+let selectedTab = 'stats';
+let dialogState = null;
+let shopState = null;
+let bankOpen = false;
+let contextMenuData = null;
+let hoveredObject = null;
+let mouseWorldX = 0, mouseWorldY = 0;
+let soundEnabled = true;
+
+// --- AUDIO SYSTEM ---
+let audioCtx = null;
+const sounds = {};
+
+function initAudio() {
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch(e) {}
+}
+
+function playSound(type) {
+  if(!soundEnabled || !audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    const t = audioCtx.currentTime;
+
+    switch(type) {
+      case 'hit':
+        osc.type='sawtooth'; osc.frequency.setValueAtTime(150,t);
+        osc.frequency.exponentialRampToValueAtTime(80,t+0.1);
+        gain.gain.setValueAtTime(0.15,t); gain.gain.exponentialRampToValueAtTime(0.01,t+0.15);
+        osc.start(t); osc.stop(t+0.15); break;
+      case 'miss':
+        osc.type='sine'; osc.frequency.setValueAtTime(200,t);
+        osc.frequency.exponentialRampToValueAtTime(100,t+0.08);
+        gain.gain.setValueAtTime(0.08,t); gain.gain.exponentialRampToValueAtTime(0.01,t+0.1);
+        osc.start(t); osc.stop(t+0.1); break;
+      case 'chop':
+        osc.type='triangle'; osc.frequency.setValueAtTime(800,t);
+        osc.frequency.exponentialRampToValueAtTime(200,t+0.05);
+        gain.gain.setValueAtTime(0.12,t); gain.gain.exponentialRampToValueAtTime(0.01,t+0.08);
+        osc.start(t); osc.stop(t+0.08); break;
+      case 'mine':
+        osc.type='square'; osc.frequency.setValueAtTime(600,t);
+        osc.frequency.exponentialRampToValueAtTime(100,t+0.08);
+        gain.gain.setValueAtTime(0.1,t); gain.gain.exponentialRampToValueAtTime(0.01,t+0.1);
+        osc.start(t); osc.stop(t+0.1); break;
+      case 'fish':
+        osc.type='sine'; osc.frequency.setValueAtTime(400,t);
+        osc.frequency.exponentialRampToValueAtTime(600,t+0.1);
+        osc.frequency.exponentialRampToValueAtTime(300,t+0.2);
+        gain.gain.setValueAtTime(0.08,t); gain.gain.exponentialRampToValueAtTime(0.01,t+0.25);
+        osc.start(t); osc.stop(t+0.25); break;
+      case 'levelup':
+        const notes = [523,659,784,1047];
+        notes.forEach((freq,i) => {
+          const o2=audioCtx.createOscillator(), g2=audioCtx.createGain();
+          o2.connect(g2); g2.connect(audioCtx.destination);
+          o2.type='sine'; o2.frequency.setValueAtTime(freq,t+i*0.12);
+          g2.gain.setValueAtTime(0.15,t+i*0.12); g2.gain.exponentialRampToValueAtTime(0.01,t+i*0.12+0.3);
+          o2.start(t+i*0.12); o2.stop(t+i*0.12+0.3);
+        });
+        return;
+      case 'eat':
+        osc.type='sine'; osc.frequency.setValueAtTime(300,t);
+        osc.frequency.setValueAtTime(350,t+0.05);
+        osc.frequency.setValueAtTime(300,t+0.1);
+        gain.gain.setValueAtTime(0.1,t); gain.gain.exponentialRampToValueAtTime(0.01,t+0.15);
+        osc.start(t); osc.stop(t+0.15); break;
+      case 'pickup':
+        osc.type='sine'; osc.frequency.setValueAtTime(500,t);
+        osc.frequency.exponentialRampToValueAtTime(800,t+0.08);
+        gain.gain.setValueAtTime(0.1,t); gain.gain.exponentialRampToValueAtTime(0.01,t+0.1);
+        osc.start(t); osc.stop(t+0.1); break;
+      default:
+        osc.type='sine'; osc.frequency.setValueAtTime(440,t);
+        gain.gain.setValueAtTime(0.1,t); gain.gain.exponentialRampToValueAtTime(0.01,t+0.1);
+        osc.start(t); osc.stop(t+0.1);
+    }
+  } catch(e) {}
+}
+
+// Background music
+let musicPlaying = false;
+let musicGain = null;
+function startMusic() {
+  if(!audioCtx || musicPlaying) return;
+  musicPlaying = true;
+  try {
+    musicGain = audioCtx.createGain();
+    musicGain.gain.value = 0.04;
+    musicGain.connect(audioCtx.destination);
+
+    function playMelody() {
+      const melody = [262,294,330,349,392,349,330,294,262,294,330,392,440,392,330,294];
+      const dur = 0.4;
+      melody.forEach((freq,i) => {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.connect(g); g.connect(musicGain);
+        osc.type = 'sine';
+        const t = audioCtx.currentTime + i*dur;
+        osc.frequency.setValueAtTime(freq,t);
+        g.gain.setValueAtTime(0.08,t);
+        g.gain.exponentialRampToValueAtTime(0.01,t+dur*0.9);
+        osc.start(t); osc.stop(t+dur);
+      });
+      if(musicPlaying) setTimeout(playMelody, melody.length*dur*1000);
+    }
+    playMelody();
+  } catch(e) {}
+}
+
+// --- GAME TICK ---
+function doGameTick() {
+  gameTick++;
+  dayNightCycle = (gameTick % 2000) / 2000; // full day cycle
+
+  // Player combat
+  if(player.inCombat && player.combatTarget) {
+    const obj = player.combatTarget;
+    if(!obj || !obj.data || obj.data.dead) {
+      player.inCombat = false;
+      player.combatTarget = null;
+    } else {
+      // Check range
+      const dx = Math.abs(player.x - obj.x), dy = Math.abs(player.y - obj.y);
+      if(dx > 1 || dy > 1) {
+        // Move closer
+        const path = findPath(player.x, player.y, obj.x, obj.y);
+        if(path.length > 0) {
+          player.moveQueue = path.slice(0, path.length > 1 ? path.length-1 : 1);
+        }
+      } else {
+        player.atkTimer--;
+        if(player.atkTimer <= 0) {
+          playerAttack(obj);
+          player.atkTimer = 4; // 4 ticks = 2.4s
+        }
+      }
+    }
+  }
+
+  // Player skilling action
+  if(player.action) {
+    player.action.timer--;
+    if(player.action.timer <= 0) {
+      completeAction(player.action);
+    }
+  }
+
+  // Monster AI
+  worldObjects.forEach(obj => {
+    if(obj.type !== 'monster') return;
+    const d = obj.data;
+    if(d.dead) {
+      if(gameTick >= d.respawnAt) {
+        d.dead = false;
+        d.hp = d.maxHp;
+        obj.x = d.spawnX;
+        obj.y = d.spawnY;
+        d.inCombat = false;
+        d.target = null;
+      }
+      return;
+    }
+
+    if(d.inCombat && d.target === 'player') {
+      const dx = Math.abs(player.x - obj.x), dy = Math.abs(player.y - obj.y);
+      if(dx > 1 || dy > 1) {
+        // Pursue
+        if(dx > 8 || dy > 8) { d.inCombat = false; d.target = null; return; }
+        const path = findPath(obj.x, obj.y, player.x, player.y);
+        if(path.length > 0) { obj.x = path[0].x; obj.y = path[0].y; }
+      } else {
+        d.atkTimer--;
+        if(d.atkTimer <= 0) {
+          monsterAttack(obj);
+          d.atkTimer = MONSTER_TYPES[obj.subtype].atkSpd;
+        }
+      }
+    } else {
+      // Wander
+      d.wanderTimer--;
+      if(d.wanderTimer <= 0) {
+        d.wanderTimer = 5 + Math.floor(Math.random()*10);
+        const dirs = [{dx:0,dy:-1},{dx:1,dy:0},{dx:0,dy:1},{dx:-1,dy:0}];
+        const dir = dirs[Math.floor(Math.random()*4)];
+        const nx = obj.x+dir.dx, ny = obj.y+dir.dy;
+        if(isWalkable(nx,ny) && Math.abs(nx-d.spawnX)<=3 && Math.abs(ny-d.spawnY)<=3) {
+          obj.x = nx; obj.y = ny;
+        }
+      }
+    }
+  });
+
+  // Respawn depleted resources
+  worldObjects.forEach(obj => {
+    if((obj.type==='tree'||obj.type==='rock'||obj.type==='fish_spot') && obj.depleted && gameTick >= obj.respawnAt) {
+      obj.depleted = false;
+    }
+  });
+
+  // Prayer drain
+  if(Object.keys(player.prayersActive).length > 0) {
+    if(gameTick % 3 === 0) {
+      player.prayer = Math.max(0, player.prayer - 1);
+      if(player.prayer <= 0) {
+        player.prayersActive = {};
+        chatMsg('You have run out of prayer points.','system');
+      }
+    }
+  }
+
+  // Run energy regen
+  if(!player.moving && player.runEnergy < 100) {
+    player.runEnergy = Math.min(100, player.runEnergy + 0.5);
+  }
+
+  // HP regen (every 100 ticks)
+  if(gameTick % 100 === 0 && player.hp < player.maxHp && !player.dead) {
+    player.hp = Math.min(player.maxHp, player.hp + 1);
+  }
+}
+
+function playerAttack(monsterObj) {
+  const mt = MONSTER_TYPES[monsterObj.subtype];
+  const atkLvl = getSkillLevel('attack');
+  const strLvl = getSkillLevel('strength');
+  const atkBonus = getEquipBonus('atkBonus');
+  const strBonus = getEquipBonus('strBonus');
+
+  const atkRoll = Math.floor(Math.random() * (atkLvl + atkBonus + 8));
+  const defRoll = Math.floor(Math.random() * (mt.lvl + 8));
+
+  if(atkRoll > defRoll) {
+    const maxHit = Math.floor(1 + strLvl * 0.4 + strBonus * 0.3);
+    const dmg = Math.floor(Math.random() * (maxHit + 1));
+    monsterObj.data.hp -= dmg;
+    spawnHitSplat(monsterObj.x*TILE+HALF_TILE, monsterObj.y*TILE+HALF_TILE, dmg);
+    playSound('hit');
+
+    // Retaliate
+    if(!monsterObj.data.inCombat) {
+      monsterObj.data.inCombat = true;
+      monsterObj.data.target = 'player';
+      monsterObj.data.atkTimer = mt.atkSpd;
+    }
+
+    if(monsterObj.data.hp <= 0) {
+      killMonster(monsterObj);
+    }
+    // XP
+    gainXp('attack', Math.floor(dmg * 1.33 * mt.xpMod));
+    gainXp('strength', Math.floor(dmg * 1.33 * mt.xpMod));
+    gainXp('hitpoints', Math.floor(dmg * 0.44 * mt.xpMod));
+  } else {
+    spawnHitSplat(monsterObj.x*TILE+HALF_TILE, monsterObj.y*TILE+HALF_TILE, 0);
+    playSound('miss');
+  }
+}
+
+function monsterAttack(monsterObj) {
+  const mt = MONSTER_TYPES[monsterObj.subtype];
+  const defLvl = getSkillLevel('defence');
+  const defBonus = getEquipBonus('defBonus');
+
+  const atkRoll = Math.floor(Math.random() * (mt.lvl + 8));
+  let defRoll = Math.floor(Math.random() * (defLvl + defBonus + 8));
+
+  // Protection prayer
+  if(player.prayersActive.protect_melee) defRoll *= 2;
+
+  if(atkRoll > defRoll) {
+    const dmg = Math.floor(Math.random() * (mt.maxHit + 1));
+    player.hp -= dmg;
+    spawnHitSplat(player.x*TILE+HALF_TILE, player.y*TILE+HALF_TILE, dmg);
+    playSound('hit');
+
+    if(player.hp <= 0) {
+      playerDeath();
+    }
+    gainXp('defence', Math.floor(dmg * 0.44));
+  } else {
+    spawnHitSplat(player.x*TILE+HALF_TILE, player.y*TILE+HALF_TILE, 0);
+  }
+}
+
+function killMonster(obj) {
+  const mt = MONSTER_TYPES[obj.subtype];
+  obj.data.dead = true;
+  obj.data.respawnAt = gameTick + 15 + Math.floor(Math.random()*10);
+  obj.data.inCombat = false;
+  obj.data.target = null;
+  player.inCombat = false;
+  player.combatTarget = null;
+
+  chatMsg(`You killed the ${mt.name}!`,'combat');
+
+  // Drop items on ground (simplified: add directly to inventory)
+  mt.drops.forEach(drop => {
+    if(Math.random() < drop.chance) {
+      const qty = Array.isArray(drop.qty) ? drop.qty[0]+Math.floor(Math.random()*(drop.qty[1]-drop.qty[0]+1)) : drop.qty;
+      if(addToInventory(drop.id, qty)) {
+        chatMsg(`You received: ${ITEMS[drop.id].name} x${qty}`,'item');
+      }
+    }
+  });
+}
+
+function playerDeath() {
+  player.dead = true;
+  player.hp = player.maxHp;
+  player.prayer = player.maxPrayer;
+  player.x = 40; player.y = 39;
+  player.targetX = 40; player.targetY = 39;
+  player.fromX = 40; player.fromY = 39;
+  player.moveQueue = [];
+  player.inCombat = false;
+  player.combatTarget = null;
+  player.action = null;
+  player.prayersActive = {};
+  chatMsg('Oh dear, you are dead! You respawn in Lumbridge.','combat');
+  setTimeout(() => { player.dead = false; }, 1000);
+}
+
+// --- SKILLING ---
+function startAction(type, obj) {
+  if(player.inCombat) { chatMsg("You can't do that while in combat!",'system'); return; }
+
+  const dx = Math.abs(player.x - obj.x), dy = Math.abs(player.y - obj.y);
+  if(dx > 1 || dy > 1) {
+    const path = findPath(player.x, player.y, obj.x, obj.y);
+    if(path.length > 0) {
+      // Remove last step so we're adjacent
+      player.moveQueue = path.length > 1 ? path.slice(0, -1) : path;
+      player.pendingAction = {type, obj};
+    }
+    return;
+  }
+
+  if(type === 'chop') {
+    const tree = TREE_TYPES[obj.subtype];
+    if(obj.depleted) { chatMsg('This tree has been chopped down.','system'); return; }
+    if(getSkillLevel('woodcutting') < tree.lvl) { chatMsg(`You need level ${tree.lvl} Woodcutting.`,'system'); return; }
+    if(player.inventory.filter(s=>s).length >= INV_SIZE) { chatMsg('Your inventory is full!','system'); return; }
+    player.action = {type:'chop',obj,timer:tree.time,totalTime:tree.time};
+    chatMsg(`You swing your axe at the ${tree.name}...`,'skill');
+    playSound('chop');
+  }
+  else if(type === 'mine') {
+    const rock = ROCK_TYPES[obj.subtype];
+    if(obj.depleted) { chatMsg('This rock is empty.','system'); return; }
+    if(getSkillLevel('mining') < rock.lvl) { chatMsg(`You need level ${rock.lvl} Mining.`,'system'); return; }
+    if(player.inventory.filter(s=>s).length >= INV_SIZE) { chatMsg('Your inventory is full!','system'); return; }
+    player.action = {type:'mine',obj,timer:rock.time,totalTime:rock.time};
+    chatMsg(`You swing your pickaxe at the ${rock.name}...`,'skill');
+    playSound('mine');
+  }
+  else if(type === 'fish') {
+    const fish = FISH_TYPES[obj.subtype];
+    if(getSkillLevel('fishing') < fish.lvl) { chatMsg(`You need level ${fish.lvl} Fishing.`,'system'); return; }
+    if(player.inventory.filter(s=>s).length >= INV_SIZE) { chatMsg('Your inventory is full!','system'); return; }
+    player.action = {type:'fish',obj,timer:fish.time,totalTime:fish.time};
+    chatMsg(`You cast your net...`,'skill');
+    playSound('fish');
+  }
+}
+
+function completeAction(action) {
+  player.action = null;
+  if(action.type === 'chop') {
+    const tree = TREE_TYPES[action.obj.subtype];
+    if(action.obj.depleted) return;
+    if(addToInventory(tree.logId, 1)) {
+      gainXp('woodcutting', tree.xp);
+      chatMsg(`You get some ${ITEMS[tree.logId].name}.`,'skill');
+      playSound('chop');
+    }
+    // Chance to deplete
+    if(Math.random() < 0.3) {
+      action.obj.depleted = true;
+      action.obj.respawnAt = gameTick + 10 + Math.floor(Math.random()*10);
+    } else {
+      // Continue chopping
+      if(player.inventory.filter(s=>s).length < INV_SIZE) {
+        player.action = {type:'chop',obj:action.obj,timer:tree.time,totalTime:tree.time};
+      }
+    }
+  }
+  else if(action.type === 'mine') {
+    const rock = ROCK_TYPES[action.obj.subtype];
+    if(action.obj.depleted) return;
+    if(addToInventory(rock.oreId, 1)) {
+      gainXp('mining', rock.xp);
+      chatMsg(`You mine some ${ITEMS[rock.oreId].name}.`,'skill');
+      playSound('mine');
+    }
+    action.obj.depleted = true;
+    action.obj.respawnAt = gameTick + 8 + Math.floor(Math.random()*8);
+  }
+  else if(action.type === 'fish') {
+    const fish = FISH_TYPES[action.obj.subtype];
+    if(addToInventory(fish.fishId, 1)) {
+      gainXp('fishing', fish.xp);
+      chatMsg(`You catch a ${fish.name}.`,'skill');
+      playSound('fish');
+    }
+    // Continue fishing
+    if(player.inventory.filter(s=>s).length < INV_SIZE) {
+      player.action = {type:'fish',obj:action.obj,timer:fish.time,totalTime:fish.time};
+    }
+  }
+}
+
+// --- USE ITEM ---
+function useItem(slot) {
+  const inv = player.inventory[slot];
+  if(!inv) return;
+  const item = ITEMS[inv.id];
+  if(!item) return;
+
+  // Food
+  if(item.heal) {
+    if(player.hp >= player.maxHp) { chatMsg('You already have full HP.','system'); return; }
+    player.hp = Math.min(player.maxHp, player.hp + item.heal);
+    chatMsg(`You eat the ${item.name}. It heals ${item.heal} HP.`,'skill');
+    removeFromInventory(slot);
+    spawnHitSplat(player.x*TILE+HALF_TILE, player.y*TILE+HALF_TILE, item.heal, 'heal');
+    playSound('eat');
+    return;
+  }
+
+  // Bones
+  if(inv.id === 'bones' || inv.id === 'big_bones') {
+    const xp = inv.id === 'big_bones' ? 15 : 4.5;
+    gainXp('prayer', xp);
+    chatMsg(`You bury the ${item.name}.`,'skill');
+    removeFromInventory(slot);
+    return;
+  }
+
+  // Logs (firemaking)
+  if(item.fmLvl !== undefined) {
+    if(getSkillLevel('firemaking') < item.fmLvl) {
+      chatMsg(`You need level ${item.fmLvl} Firemaking.`,'system');
+      return;
+    }
+    gainXp('firemaking', item.fmXp);
+    chatMsg(`You light the ${item.name}.`,'skill');
+    removeFromInventory(slot);
+    addParticle(player.x*TILE+HALF_TILE, player.y*TILE+HALF_TILE, 'fire', {life:60,color:'#f80',size:8});
+    return;
+  }
+
+  // Cooking (need to be near a range or fire)
+  if(item.cookLvl !== undefined) {
+    if(getSkillLevel('cooking') < item.cookLvl) {
+      chatMsg(`You need level ${item.cookLvl} Cooking.`,'system');
+      return;
+    }
+    // Check for range nearby
+    const nearRange = worldObjects.find(o => o.type==='range' && Math.abs(o.x-player.x)<=1 && Math.abs(o.y-player.y)<=1);
+    if(!nearRange) {
+      chatMsg('You need to be near a cooking range.','system');
+      return;
+    }
+    const burned = Math.random() < Math.max(0.05, 0.5 - getSkillLevel('cooking')*0.01);
+    removeFromInventory(slot);
+    if(burned) {
+      chatMsg(`You accidentally burn the ${item.name}.`,'system');
+    } else {
+      addToInventory(item.cookedId, 1);
+      gainXp('cooking', item.cookXp);
+      chatMsg(`You cook the ${item.name}.`,'skill');
+    }
+    return;
+  }
+
+  // Equipment
+  if(item.slot) {
+    equipItem(slot);
+    return;
+  }
+}
+
+// --- SHOP SYSTEM ---
+function openShop(npcType) {
+  const npc = NPC_TYPES[npcType];
+  if(!npc || !npc.shop) return;
+  shopState = npc.shop;
+  document.getElementById('shopPanel').style.display = 'block';
+  document.querySelector('#shopPanel .shop-title').textContent = shopState.name;
+  renderShop();
+}
+
+function renderShop() {
+  const grid = document.querySelector('#shopPanel .shop-grid');
+  grid.innerHTML = '';
+  shopState.items.forEach((si,i) => {
+    const item = ITEMS[si.id];
+    const div = document.createElement('div');
+    div.className = 'shop-item';
+    div.innerHTML = `<div class="item-icon">${item.icon}</div><div style="font-size:9px;color:#aa8">${item.name}</div><div class="item-price">💰${si.price}</div>`;
+    div.onclick = () => buyItem(i);
+    grid.appendChild(div);
+  });
+}
+
+function buyItem(idx) {
+  const si = shopState.items[idx];
+  const coins = countItem('coins');
+  if(coins < si.price) { chatMsg("You don't have enough coins!",'system'); return; }
+  if(player.inventory.filter(s=>s).length >= INV_SIZE && !(ITEMS[si.id].stackable && findItemSlot(si.id)>=0)) {
+    chatMsg('Your inventory is full!','system'); return;
+  }
+  // Remove coins
+  let remaining = si.price;
+  for(let i=0;i<INV_SIZE&&remaining>0;i++){
+    if(player.inventory[i]&&player.inventory[i].id==='coins'){
+      const take = Math.min(player.inventory[i].qty, remaining);
+      player.inventory[i].qty -= take;
+      remaining -= take;
+      if(player.inventory[i].qty<=0) player.inventory[i]=null;
+    }
+  }
+  addToInventory(si.id, 1);
+  chatMsg(`You bought a ${ITEMS[si.id].name} for ${si.price} coins.`,'item');
+  playSound('pickup');
+  renderInventory();
+}
+
+function closeShop() {
+  shopState = null;
+  document.getElementById('shopPanel').style.display = 'none';
+}
+
+// --- BANK SYSTEM ---
+function openBank() {
+  bankOpen = true;
+  document.getElementById('bankPanel').style.display = 'block';
+  renderBank();
+}
+
+function closeBank() {
+  bankOpen = false;
+  document.getElementById('bankPanel').style.display = 'none';
+}
+
+function depositItem(slot) {
+  const inv = player.inventory[slot];
+  if(!inv) return;
+  // Find in bank
+  const bankIdx = player.bank.findIndex(b => b.id === inv.id);
+  if(bankIdx >= 0) {
+    player.bank[bankIdx].qty += inv.qty;
+  } else {
+    player.bank.push({id:inv.id, qty:inv.qty});
+  }
+  player.inventory[slot] = null;
+  renderBank();
+  renderInventory();
+}
+
+function withdrawItem(bankIdx) {
+  const bi = player.bank[bankIdx];
+  if(!bi) return;
+  const withdrawQty = 1;
+  if(!addToInventory(bi.id, withdrawQty)) return;
+  bi.qty -= withdrawQty;
+  if(bi.qty <= 0) player.bank.splice(bankIdx, 1);
+  renderBank();
+  renderInventory();
+}
+
+function renderBank() {
+  const grid = document.querySelector('#bankPanel .bank-grid');
+  grid.innerHTML = '';
+  player.bank.forEach((bi,i) => {
+    const item = ITEMS[bi.id];
+    if(!item) return;
+    const div = document.createElement('div');
+    div.className = 'inv-slot';
+    div.innerHTML = `<div class="item-icon">${item.icon}</div><div class="item-qty">${bi.qty>1?bi.qty:''}</div><div class="item-name">${item.name}</div>`;
+    div.onclick = () => withdrawItem(i);
+    grid.appendChild(div);
+  });
+}
+
+// --- DIALOG SYSTEM ---
+function openDialog(npcType) {
+  const npc = NPC_TYPES[npcType];
+  if(!npc || !npc.dialog) return;
+  dialogState = {npc: npcType, step: 0};
+  renderDialog();
+}
+
+function renderDialog() {
+  const box = document.getElementById('dialogBox');
+  const npc = NPC_TYPES[dialogState.npc];
+  const step = npc.dialog[dialogState.step];
+  box.style.display = 'block';
+  box.innerHTML = `
+    <div class="npc-name">${npc.icon} ${npc.name}</div>
+    <div class="npc-text">${step.text}</div>
+    <div class="dialog-options">
+      ${step.options.map((opt,i) => `<div class="dialog-option" onclick="dialogOption(${i})">${opt.text}</div>`).join('')}
+    </div>
+  `;
+}
+
+function dialogOption(idx) {
+  const npc = NPC_TYPES[dialogState.npc];
+  const step = npc.dialog[dialogState.step];
+  const opt = step.options[idx];
+  if(opt.close) {
+    document.getElementById('dialogBox').style.display = 'none';
+    dialogState = null;
+    return;
+  }
+  if(opt.next !== undefined) {
+    dialogState.step = opt.next;
+    renderDialog();
+  }
+}
+
+// --- CONTEXT MENU ---
+function showContextMenu(x, y, options) {
+  const menu = document.getElementById('contextMenu');
+  menu.style.display = 'block';
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+  menu.innerHTML = options.map(o => `<div style="color:${o.color||'#ff0'}">${o.text}</div>`).join('');
+  options.forEach((o,i) => {
+    menu.children[i].onclick = () => { menu.style.display = 'none'; o.action(); };
+  });
+}
+
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('#contextMenu')) {
+    document.getElementById('contextMenu').style.display = 'none';
+  }
+});
+
+// --- RENDER ---
+const tileColors = {
+  [T.GRASS]: ['#3a8030','#358028','#3d8533'],
+  [T.DIRT]: ['#8B7355','#7B6345','#9B8365'],
+  [T.STONE]: ['#808080','#707070','#909090'],
+  [T.WATER]: ['#2060a0','#1858a8','#2868a8'],
+  [T.SAND]: ['#dcc078','#d4b870','#e4c880'],
+  [T.COBBLE]: ['#686868','#606060','#707070'],
+  [T.WALL]: ['#605040','#504030','#706050'],
+  [T.CASTLE_FLOOR]: ['#b8a078','#b09870','#c0a880'],
+  [T.BRIDGE]: ['#8B7355','#7B6345','#9B8365'],
+  [T.DARK_GRASS]: ['#2a6020','#256018','#2f6525'],
+  [T.LAVA]: ['#c02020','#d03010','#b01818'],
+  [T.WILD_GROUND]: ['#3a2020','#302018','#402828'],
+  [T.MARBLE]: ['#d0c8c0','#c8c0b8','#d8d0c8'],
+  [T.PATH]: ['#a09070','#988868','#a89878'],
+};
+
+function getDayNightTint() {
+  // 0-0.25: night, 0.25-0.35: sunrise, 0.35-0.65: day, 0.65-0.75: sunset, 0.75-1: night
+  const t = dayNightCycle;
+  if(t < 0.2) return {r:0.3, g:0.3, b:0.5, a:0.4}; // night
+  if(t < 0.3) { const f=(t-0.2)/0.1; return {r:0.3+0.7*f, g:0.3+0.5*f, b:0.5-0.3*f, a:0.4-0.3*f}; } // sunrise
+  if(t < 0.35) { const f=(t-0.3)/0.05; return {r:1, g:0.8+0.1*f, b:0.2+0.3*f, a:0.1-0.1*f}; } // golden hour
+  if(t < 0.65) return {r:1, g:1, b:1, a:0}; // day
+  if(t < 0.7) { const f=(t-0.65)/0.05; return {r:1, g:0.9-0.2*f, b:0.5-0.3*f, a:f*0.1}; } // golden hour
+  if(t < 0.8) { const f=(t-0.7)/0.1; return {r:1-0.7*f, g:0.7-0.4*f, b:0.2+0.3*f, a:0.1+0.3*f}; } // sunset
+  return {r:0.3, g:0.3, b:0.5, a:0.4}; // night
+}
+
+function renderTile(x, y, screenX, screenY) {
+  if(x<0||x>=MAP_W||y<0||y>=MAP_H) return;
+  const tileType = worldMap[y][x];
+  const colors = tileColors[tileType] || tileColors[T.GRASS];
+  const colorIdx = ((x*7+y*13)%3);
+  ctx.fillStyle = colors[colorIdx];
+  ctx.fillRect(screenX, screenY, TILE+1, TILE+1);
+
+  // Tile details
+  if(tileType === T.GRASS || tileType === T.DARK_GRASS) {
+    // Grass blades
+    ctx.fillStyle = tileType===T.DARK_GRASS ? '#1a4010' : '#2a6020';
+    const seed = (x*31+y*17)%7;
+    for(let i=0;i<3;i++){
+      const gx = screenX + ((seed*13+i*19)%TILE);
+      const gy = screenY + ((seed*7+i*23)%TILE);
+      ctx.fillRect(gx,gy,1,3);
+    }
+  }
+  if(tileType === T.COBBLE || tileType === T.PATH) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 0.5;
+    // Grid pattern
+    const cx = screenX + TILE/2, cy = screenY + TILE/2;
+    ctx.beginPath();
+    ctx.moveTo(screenX, cy); ctx.lineTo(screenX+TILE, cy);
+    ctx.moveTo(cx, screenY); ctx.lineTo(cx, screenY+TILE);
+    ctx.stroke();
+  }
+  if(tileType === T.WATER) {
+    // Animated water ripples
+    const t = performance.now()*0.001;
+    const wave = Math.sin(t*2 + x*0.5 + y*0.3) * 0.15;
+    ctx.fillStyle = `rgba(100,180,255,${0.15+wave})`;
+    ctx.fillRect(screenX, screenY, TILE, TILE);
+    // Sparkles
+    if(Math.sin(t*3+x*7+y*11) > 0.7) {
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.fillRect(screenX+20+Math.sin(t+x)*8, screenY+15+Math.cos(t+y)*8, 2, 2);
+    }
+  }
+  if(tileType === T.LAVA) {
+    const t = performance.now()*0.001;
+    const glow = Math.sin(t*2+x+y)*0.2;
+    ctx.fillStyle = `rgba(255,100,0,${0.3+glow})`;
+    ctx.fillRect(screenX, screenY, TILE, TILE);
+  }
+  if(tileType === T.MARBLE) {
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(screenX+2, screenY+2, TILE-4, TILE-4);
+  }
+  if(tileType === T.WALL) {
+    // Wall top edge
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(screenX, screenY+TILE-4, TILE, 4);
+    ctx.fillStyle = 'rgba(100,80,60,0.5)';
+    ctx.fillRect(screenX, screenY, TILE, 4);
+  }
+}
+
+function renderObject(obj, screenX, screenY) {
+  const cx = screenX + HALF_TILE;
+  const cy = screenY + HALF_TILE;
+
+  if(obj.type === 'tree') {
+    if(obj.depleted) {
+      // Stump
+      ctx.fillStyle = '#6B4226';
+      ctx.fillRect(cx-6, cy, 12, 10);
+      ctx.fillStyle = '#8B6236';
+      ctx.beginPath(); ctx.arc(cx, cy, 7, Math.PI, 0); ctx.fill();
+    } else {
+      const tree = TREE_TYPES[obj.subtype];
+      // Trunk
+      ctx.fillStyle = '#6B4226';
+      ctx.fillRect(cx-4, cy-4, 8, 18);
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.beginPath(); ctx.ellipse(cx, cy+16, 14, 5, 0, 0, Math.PI*2); ctx.fill();
+      // Canopy
+      ctx.fillStyle = tree.color;
+      ctx.beginPath(); ctx.arc(cx, cy-10, 16, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      ctx.beginPath(); ctx.arc(cx+4, cy-6, 12, 0, Math.PI*2); ctx.fill();
+      // Highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.beginPath(); ctx.arc(cx-5, cy-14, 8, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  else if(obj.type === 'rock') {
+    if(obj.depleted) {
+      ctx.fillStyle = '#555';
+      ctx.beginPath(); ctx.arc(cx, cy+4, 8, Math.PI, 0); ctx.fill();
+    } else {
+      const rock = ROCK_TYPES[obj.subtype];
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.beginPath(); ctx.ellipse(cx, cy+10, 12, 4, 0, 0, Math.PI*2); ctx.fill();
+      // Rock body
+      ctx.fillStyle = rock.color;
+      ctx.beginPath();
+      ctx.moveTo(cx-12,cy+6); ctx.lineTo(cx-8,cy-10); ctx.lineTo(cx+4,cy-12);
+      ctx.lineTo(cx+12,cy-4); ctx.lineTo(cx+10,cy+6); ctx.closePath();
+      ctx.fill();
+      // Ore veins
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(cx-4,cy-6,3,3);
+      ctx.fillRect(cx+2,cy-2,2,2);
+      // Highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.beginPath(); ctx.arc(cx-3, cy-8, 4, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  else if(obj.type === 'fish_spot') {
+    const t = performance.now()*0.003;
+    ctx.fillStyle = 'rgba(100,200,255,0.5)';
+    ctx.beginPath();
+    ctx.arc(cx+Math.sin(t)*4, cy+Math.cos(t)*3, 6+Math.sin(t*2)*2, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🎣', cx, cy+5);
+  }
+  else if(obj.type === 'monster') {
+    const mt = MONSTER_TYPES[obj.subtype];
+    if(obj.data.dead) return;
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath(); ctx.ellipse(cx, cy+10, 10, 4, 0, 0, Math.PI*2); ctx.fill();
+    // Icon
+    ctx.font = '24px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(mt.icon, cx, cy+6);
+    // HP bar
+    if(obj.data.hp < obj.data.maxHp) {
+      const barW = 30, barH = 4;
+      const barX = cx-barW/2, barY = cy-18;
+      ctx.fillStyle = '#300';
+      ctx.fillRect(barX, barY, barW, barH);
+      ctx.fillStyle = '#0f0';
+      ctx.fillRect(barX, barY, barW*(obj.data.hp/obj.data.maxHp), barH);
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(barX, barY, barW, barH);
+    }
+    // Level
+    ctx.font = '9px sans-serif';
+    ctx.fillStyle = '#ff0';
+    ctx.fillText(`Lvl ${mt.lvl}`, cx, cy-20);
+  }
+  else if(obj.type === 'npc') {
+    const npc = NPC_TYPES[obj.subtype];
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath(); ctx.ellipse(cx, cy+10, 10, 4, 0, 0, Math.PI*2); ctx.fill();
+    ctx.font = '24px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(npc.icon, cx, cy+6);
+    ctx.font = '10px sans-serif';
+    ctx.fillStyle = '#ff0';
+    ctx.textAlign = 'center';
+    ctx.fillText(npc.name, cx, cy-16);
+  }
+  else if(obj.type === 'furnace') {
+    ctx.font = '24px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🔥', cx, cy+6);
+    ctx.font = '9px sans-serif';
+    ctx.fillStyle = '#f80';
+    ctx.fillText('Furnace', cx, cy-14);
+  }
+  else if(obj.type === 'anvil') {
+    ctx.font = '24px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🔨', cx, cy+6);
+    ctx.font = '9px sans-serif';
+    ctx.fillStyle = '#aaa';
+    ctx.fillText('Anvil', cx, cy-14);
+  }
+  else if(obj.type === 'range') {
+    ctx.font = '24px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🍳', cx, cy+6);
+    ctx.font = '9px sans-serif';
+    ctx.fillStyle = '#f80';
+    ctx.fillText('Range', cx, cy-14);
+  }
+}
+
+function renderPlayer(screenX, screenY) {
+  const cx = screenX + HALF_TILE;
+  const cy = screenY + HALF_TILE;
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(cx, cy+14, 10, 4, 0, 0, Math.PI*2); ctx.fill();
+
+  // Body
+  const bodyColor = player.equipment.body ? '#4a6a9a' : '#c0a070';
+  const legColor = player.equipment.legs ? '#4a4a7a' : '#6a5a3a';
+  const headColor = '#f0d0a0';
+
+  // Legs
+  ctx.fillStyle = legColor;
+  ctx.fillRect(cx-5, cy+4, 4, 10);
+  ctx.fillRect(cx+1, cy+4, 4, 10);
+
+  // Body
+  ctx.fillStyle = bodyColor;
+  ctx.fillRect(cx-7, cy-6, 14, 12);
+
+  // Arms
+  ctx.fillRect(cx-10, cy-4, 4, 10);
+  ctx.fillRect(cx+6, cy-4, 4, 10);
+
+  // Head
+  ctx.fillStyle = headColor;
+  ctx.beginPath(); ctx.arc(cx, cy-12, 7, 0, Math.PI*2); ctx.fill();
+
+  // Helmet
+  if(player.equipment.head) {
+    ctx.fillStyle = '#888';
+    ctx.beginPath(); ctx.arc(cx, cy-14, 8, Math.PI, 0); ctx.fill();
+  }
+
+  // Shield
+  if(player.equipment.shield) {
+    ctx.fillStyle = '#6a6a3a';
+    ctx.fillRect(cx-13, cy-2, 5, 8);
+  }
+
+  // Weapon
+  if(player.equipment.weapon) {
+    const wItem = ITEMS[player.equipment.weapon];
+    ctx.font = '14px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(wItem.icon, cx+14, cy+4);
+  }
+
+  // Name
+  ctx.font = '10px sans-serif';
+  ctx.fillStyle = '#0f0';
+  ctx.textAlign = 'center';
+  ctx.fillText('You', cx, cy-24);
+
+  // HP bar
+  ctx.fillStyle = '#300';
+  ctx.fillRect(cx-15, cy-30, 30, 4);
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(cx-15, cy-30, 30*(player.hp/player.maxHp), 4);
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 0.5;
+  ctx.strokeRect(cx-15, cy-30, 30, 4);
+
+  // Action progress bar
+  if(player.action) {
+    const prog = 1 - (player.action.timer / player.action.totalTime);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(cx-20, cy-38, 40, 6);
+    ctx.fillStyle = '#0af';
+    ctx.fillRect(cx-19, cy-37, 38*prog, 4);
+    ctx.strokeStyle = '#5a4a2a';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cx-20, cy-38, 40, 6);
+  }
+}
+
+function render() {
+  const cw = canvas.width, ch = canvas.height;
+  ctx.clearRect(0, 0, cw, ch);
+
+  // Calculate player screen position (smooth interpolation)
+  let playerScreenX, playerScreenY;
+  if(player.moving) {
+    playerScreenX = (player.fromX + (player.x - player.fromX) * player.moveProgress) * TILE;
+    playerScreenY = (player.fromY + (player.y - player.fromY) * player.moveProgress) * TILE;
+  } else {
+    playerScreenX = player.x * TILE;
+    playerScreenY = player.y * TILE;
+  }
+
+  // Camera follows player
+  const targetCamX = playerScreenX - cw/2 + HALF_TILE;
+  const targetCamY = playerScreenY - ch/2 + HALF_TILE;
+  camera.x += (targetCamX - camera.x) * 0.12;
+  camera.y += (targetCamY - camera.y) * 0.12;
+
+  // Render tiles
+  const startTX = Math.floor(camera.x / TILE) - 1;
+  const startTY = Math.floor(camera.y / TILE) - 1;
+  const endTX = startTX + Math.ceil(cw / TILE) + 2;
+  const endTY = startTY + Math.ceil(ch / TILE) + 2;
+
+  for(let ty = startTY; ty <= endTY; ty++) {
+    for(let tx = startTX; tx <= endTX; tx++) {
+      const sx = tx * TILE - camera.x;
+      const sy = ty * TILE - camera.y;
+      renderTile(tx, ty, sx, sy);
+    }
+  }
+
+  // Render objects (sorted by y for depth)
+  const visibleObjects = worldObjects.filter(obj => {
+    return obj.x >= startTX-1 && obj.x <= endTX+1 && obj.y >= startTY-1 && obj.y <= endTY+1;
+  }).sort((a,b) => a.y - b.y);
+
+  // Render objects before player (above), player, then objects after (below)
+  const playerY = player.y;
+  visibleObjects.filter(o => o.y < playerY).forEach(obj => {
+    renderObject(obj, obj.x*TILE - camera.x, obj.y*TILE - camera.y);
+  });
+
+  renderPlayer(playerScreenX - camera.x, playerScreenY - camera.y);
+
+  visibleObjects.filter(o => o.y >= playerY).forEach(obj => {
+    renderObject(obj, obj.x*TILE - camera.x, obj.y*TILE - camera.y);
+  });
+
+  // Wilderness warning
+  if(player.y <= 4) {
+    ctx.fillStyle = 'rgba(100,0,0,0.3)';
+    ctx.fillRect(0, 0, cw, ch);
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillStyle = '#f44';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚠️ WILDERNESS ⚠️', cw/2, 30);
+  }
+
+  // Particles
+  particles.forEach(p => {
+    const px = p.x - camera.x;
+    const py = p.y - camera.y;
+    p.alpha = p.life / p.maxLife;
+
+    if(p.type === 'hitsplat') {
+      // Background circle
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(p.text, px, py);
+      ctx.textBaseline = 'alphabetic';
+      ctx.globalAlpha = 1;
+    }
+    else if(p.type === 'spark' || p.type === 'fire') {
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(px, py, p.size * p.alpha, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    p.x += p.vx;
+    p.y += p.vy;
+    if(p.type === 'spark') p.vy += 0.05; // gravity
+    p.life--;
+  });
+  particles = particles.filter(p => p.life > 0);
+
+  // Day/Night overlay
+  const tint = getDayNightTint();
+  if(tint.a > 0.01) {
+    ctx.fillStyle = `rgba(${Math.floor(tint.r*50)},${Math.floor(tint.g*50)},${Math.floor(tint.b*150)},${tint.a})`;
+    ctx.fillRect(0, 0, cw, ch);
+  }
+
+  // Torch/light glow for objects that emit light
+  worldObjects.forEach(obj => {
+    if(obj.type === 'furnace' || obj.type === 'range') {
+      const ox = obj.x*TILE - camera.x + HALF_TILE;
+      const oy = obj.y*TILE - camera.y + HALF_TILE;
+      if(ox > -100 && ox < cw+100 && oy > -100 && oy < ch+100) {
+        const grad = ctx.createRadialGradient(ox, oy, 5, ox, oy, 60);
+        grad.addColorStop(0, 'rgba(255,150,50,0.15)');
+        grad.addColorStop(1, 'rgba(255,100,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(ox-60, oy-60, 120, 120);
+      }
+    }
+  });
+
+  // Hover highlight
+  if(hoveredObject) {
+    const hx = hoveredObject.x*TILE - camera.x;
+    const hy = hoveredObject.y*TILE - camera.y;
+    ctx.strokeStyle = 'rgba(255,255,0,0.5)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(hx+2, hy+2, TILE-4, TILE-4);
+  }
+
+  // Minimap
+  renderMinimap();
+}
+
+function renderMinimap() {
+  const mw = 140, mh = 140;
+  mmCtx.fillStyle = '#0a0a0a';
+  mmCtx.fillRect(0, 0, mw, mh);
+
+  const scale = 1.6;
+  const ox = player.x - mw/(2*scale);
+  const oy = player.y - mh/(2*scale);
+
+  for(let my=0; my<mh; my++) {
+    for(let mx=0; mx<mw; mx++) {
+      const tx = Math.floor(ox + mx/scale);
+      const ty = Math.floor(oy + my/scale);
+      if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H) continue;
+      const t = worldMap[ty][tx];
+      const colors = {
+        [T.GRASS]:'#3a8030',[T.DIRT]:'#8B7355',[T.STONE]:'#808080',
+        [T.WATER]:'#2060a0',[T.SAND]:'#dcc078',[T.COBBLE]:'#686868',
+        [T.WALL]:'#605040',[T.CASTLE_FLOOR]:'#b8a078',[T.BRIDGE]:'#8B7355',
+        [T.DARK_GRASS]:'#2a6020',[T.LAVA]:'#c02020',[T.WILD_GROUND]:'#3a2020',
+        [T.MARBLE]:'#d0c8c0',[T.PATH]:'#a09070',
+      };
+      mmCtx.fillStyle = colors[t] || '#000';
+      mmCtx.fillRect(mx, my, 1, 1);
+    }
+  }
+
+  // Objects on minimap
+  worldObjects.forEach(obj => {
+    const mx = (obj.x - ox) * scale;
+    const my = (obj.y - oy) * scale;
+    if(mx<0||mx>=mw||my<0||my>=mh) return;
+    if(obj.type==='monster' && !obj.data.dead) {
+      mmCtx.fillStyle = '#f00';
+      mmCtx.fillRect(mx-1, my-1, 2, 2);
+    }
+    if(obj.type==='npc') {
+      mmCtx.fillStyle = '#ff0';
+      mmCtx.fillRect(mx-1, my-1, 3, 3);
+    }
+  });
+
+  // Player dot
+  const pmx = (player.x - ox) * scale;
+  const pmy = (player.y - oy) * scale;
+  mmCtx.fillStyle = '#fff';
+  mmCtx.fillRect(pmx-2, pmy-2, 4, 4);
+
+  // Border circle mask
+  mmCtx.globalCompositeOperation = 'destination-in';
+  mmCtx.beginPath();
+  mmCtx.arc(70, 70, 68, 0, Math.PI*2);
+  mmCtx.fill();
+  mmCtx.globalCompositeOperation = 'source-over';
+}
+
+// --- UI RENDERING ---
+function renderStats() {
+  const panel = document.getElementById('statsPanel');
+  panel.innerHTML = `<div style="text-align:center;color:#ff0;font-size:13px;padding:4px;border-bottom:1px solid #5a4a2a;">⚔️ Combat Level: ${getCombatLevel()}</div>`;
+  SKILL_LIST.forEach(s => {
+    const lvl = getSkillLevel(s.id);
+    const xp = player.skills[s.id].xp;
+    const xpCur = xpForLevel(lvl);
+    const xpNext = lvl >= 99 ? xp : xpForLevel(lvl+1);
+    const prog = lvl >= 99 ? 100 : ((xp - xpCur) / (xpNext - xpCur) * 100);
+    panel.innerHTML += `
+      <div class="skill-row">
+        <div class="skill-icon">${s.icon}</div>
+        <div class="skill-info">
+          <div class="skill-name">${s.name}</div>
+          <div class="skill-level">${lvl}/99 <span style="font-size:9px;color:#aa8;font-weight:normal">(${Math.floor(xp)} XP)</span></div>
+          <div class="skill-xp-bar"><div class="skill-xp-fill" style="width:${prog}%"></div></div>
+        </div>
+      </div>`;
+  });
+}
+
+function renderInventory() {
+  const panel = document.getElementById('inventoryPanel');
+  panel.innerHTML = '<div class="inv-grid"></div>';
+  const grid = panel.querySelector('.inv-grid');
+  for(let i=0; i<INV_SIZE; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'inv-slot';
+    const inv = player.inventory[i];
+    if(inv && ITEMS[inv.id]) {
+      const item = ITEMS[inv.id];
+      slot.innerHTML = `<div class="item-icon">${item.icon}</div>${inv.qty>1?`<div class="item-qty">${inv.qty}</div>`:''}
+        <div class="item-name">${item.name}</div>`;
+      slot.onclick = (e) => {
+        if(bankOpen) { depositItem(i); return; }
+        useItem(i);
+      };
+      slot.oncontextmenu = (e) => {
+        e.preventDefault();
+        const opts = [{text:item.name, color:'#ff0', action:()=>{}}];
+        if(item.slot) opts.push({text:'Equip', action:()=>equipItem(i)});
+        if(item.heal) opts.push({text:'Eat', action:()=>useItem(i)});
+        opts.push({text:'Drop', color:'#f44', action:()=>{
+          chatMsg(`You drop the ${item.name}.`,'item');
+          removeFromInventory(i);
+          renderInventory();
+        }});
+        if(bankOpen) opts.push({text:'Deposit', action:()=>depositItem(i)});
+        showContextMenu(e.clientX, e.clientY, opts);
+      };
+    }
+    grid.appendChild(slot);
+  }
+}
+
+function renderEquipment() {
+  const panel = document.getElementById('equipmentPanel');
+  const slots = ['head','weapon','body','shield','legs'];
+  const labels = {head:'Head',weapon:'Weapon',body:'Body',shield:'Shield',legs:'Legs'};
+  const layout = [
+    ['','head',''],
+    ['weapon','body','shield'],
+    ['','legs','']
+  ];
+
+  let html = '<div class="equip-panel">';
+  layout.forEach(row => {
+    html += '<div class="equip-row">';
+    row.forEach(slot => {
+      if(!slot) {
+        html += '<div style="width:44px;height:44px;"></div>';
+      } else {
+        const itemId = player.equipment[slot];
+        const item = itemId ? ITEMS[itemId] : null;
+        html += `<div class="equip-slot" onclick="unequipItem('${slot}');renderEquipment();">`;
+        if(item) {
+          html += `<div class="item-icon">${item.icon}</div>`;
+        } else {
+          html += `<div class="slot-label">${labels[slot]}</div>`;
+        }
+        html += '</div>';
+      }
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // Combat stats
+  html += '<div class="combat-stats">';
+  html += `Attack bonus: <span>+${getEquipBonus('atkBonus')}</span><br>`;
+  html += `Strength bonus: <span>+${getEquipBonus('strBonus')}</span><br>`;
+  html += `Defence bonus: <span>+${getEquipBonus('defBonus')}</span><br>`;
+  html += `WC bonus: <span>+${getEquipBonus('wcBonus')}</span><br>`;
+  html += `Mining bonus: <span>+${getEquipBonus('mineBonus')}</span>`;
+  html += '</div>';
+  panel.innerHTML = html;
+}
+
+function renderPrayer() {
+  const panel = document.getElementById('prayerPanel');
+  const prayers = [
+    {id:'thick_skin',name:'Thick Skin',icon:'🛡️',lvl:1,desc:'+5% Defence'},
+    {id:'burst_of_str',name:'Burst of Strength',icon:'💪',lvl:4,desc:'+5% Strength'},
+    {id:'clarity',name:'Clarity of Thought',icon:'⚔️',lvl:7,desc:'+5% Attack'},
+    {id:'protect_melee',name:'Protect from Melee',icon:'⚔️',lvl:43,desc:'Blocks 50% melee damage'},
+  ];
+  let html = `<div style="text-align:center;padding:4px;color:#0af;font-size:12px;">Prayer: ${player.prayer}/${player.maxPrayer}</div>`;
+  prayers.forEach(p => {
+    const active = player.prayersActive[p.id];
+    const canUse = getSkillLevel('prayer') >= p.lvl && player.prayer > 0;
+    html += `<div class="skill-row" style="background:${active?'#2a3a1a':'transparent'};opacity:${canUse?1:0.4}" onclick="togglePrayer('${p.id}',${p.lvl})">
+      <div class="skill-icon">${p.icon}</div>
+      <div class="skill-info">
+        <div class="skill-name">${p.name} (Lvl ${p.lvl})</div>
+        <div style="font-size:10px;color:#aa8">${p.desc}</div>
+      </div>
+    </div>`;
+  });
+  panel.innerHTML = html;
+}
+
+function togglePrayer(id, lvl) {
+  if(getSkillLevel('prayer') < lvl) { chatMsg(`You need level ${lvl} Prayer.`,'system'); return; }
+  if(player.prayer <= 0) { chatMsg('You have no prayer points.','system'); return; }
+  if(player.prayersActive[id]) {
+    delete player.prayersActive[id];
+    chatMsg('Prayer deactivated.','system');
+  } else {
+    player.prayersActive[id] = true;
+    chatMsg('Prayer activated.','system');
+  }
+  renderPrayer();
+}
+
+function renderMagic() {
+  const panel = document.getElementById('magicPanel');
+  const spells = [
+    {name:'Wind Strike',lvl:1,runes:{air_rune:1},maxHit:2,icon:'💨'},
+    {name:'Water Strike',lvl:5,runes:{water_rune:1,air_rune:1},maxHit:4,icon:'💧'},
+    {name:'Earth Strike',lvl:9,runes:{earth_rune:1,air_rune:1},maxHit:6,icon:'🪨'},
+    {name:'Fire Strike',lvl:13,runes:{fire_rune:1,air_rune:1},maxHit:8,icon:'🔥'},
+    {name:'Fire Bolt',lvl:35,runes:{fire_rune:3,chaos_rune:1},maxHit:12,icon:'🔥'},
+    {name:'Fire Blast',lvl:59,runes:{fire_rune:5,death_rune:1},maxHit:16,icon:'🔥'},
+  ];
+  let html = `<div style="text-align:center;padding:4px;color:#a0f;font-size:12px;">Magic Level: ${getSkillLevel('magic')}</div>`;
+  spells.forEach(s => {
+    const canCast = getSkillLevel('magic') >= s.lvl;
+    const hasRunes = Object.entries(s.runes).every(([r,q]) => countItem(r) >= q);
+    html += `<div class="skill-row" style="opacity:${canCast?1:0.4}">
+      <div class="skill-icon">${s.icon}</div>
+      <div class="skill-info">
+        <div class="skill-name">${s.name} (Lvl ${s.lvl})</div>
+        <div style="font-size:10px;color:${hasRunes?'#0f0':'#f44'}">${Object.entries(s.runes).map(([r,q])=>`${ITEMS[r].icon}×${q}`).join(' ')}</div>
+        <div style="font-size:9px;color:#aa8">Max hit: ${s.maxHit}</div>
+      </div>
+    </div>`;
+  });
+  panel.innerHTML = html;
+}
+
+function renderQuests() {
+  const panel = document.getElementById('questsPanel');
+  const quests = [
+    {name:'Talk to the Duke',desc:'Speak with Duke Horacio in Lumbridge Castle.',done: questFlags.talkedDuke},
+    {name:'First Blood',desc:'Defeat any monster in combat.',done: questFlags.firstKill},
+    {name:'Chop Chop',desc:'Chop down a tree.',done: questFlags.firstChop},
+    {name:'Rock Bottom',desc:'Mine your first ore.',done: questFlags.firstMine},
+    {name:'Gone Fishing',desc:'Catch a fish.',done: questFlags.firstFish},
+    {name:'Level 10',desc:'Reach total level 50.',done: getTotalLevel() >= 50},
+    {name:'Dragon Slayer',desc:'Defeat the mighty Dragon.',done: questFlags.dragonSlain},
+  ];
+  let html = '<div style="text-align:center;padding:4px;color:#f80;font-size:13px;border-bottom:1px solid #5a4a2a;">📜 Quests & Milestones</div>';
+  quests.forEach(q => {
+    html += `<div class="skill-row">
+      <div class="skill-icon" style="color:${q.done?'#0f0':'#f44'}">${q.done?'✅':'⬜'}</div>
+      <div class="skill-info">
+        <div class="skill-name" style="color:${q.done?'#0f0':'#ff0'}">${q.name}</div>
+        <div style="font-size:10px;color:#aa8">${q.desc}</div>
+      </div>
+    </div>`;
+  });
+  panel.innerHTML = html;
+}
+
+let questFlags = {
+  talkedDuke: false,
+  firstKill: false,
+  firstChop: false,
+  firstMine: false,
+  firstFish: false,
+  dragonSlain: false,
+};
+
+// --- TAB SWITCHING ---
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    selectedTab = btn.dataset.tab;
+    document.getElementById(selectedTab+'Panel').classList.add('active');
+    refreshPanel();
+  });
+});
+
+function refreshPanel() {
+  switch(selectedTab) {
+    case 'stats': renderStats(); break;
+    case 'inventory': renderInventory(); break;
+    case 'equipment': renderEquipment(); break;
+    case 'prayer': renderPrayer(); break;
+    case 'magic': renderMagic(); break;
+    case 'quests': renderQuests(); break;
+  }
+}
+
+// --- INPUT ---
+canvas.addEventListener('click', (e) => {
+  if(!audioCtx) initAudio();
+
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const worldX = Math.floor((mx + camera.x) / TILE);
+  const worldY = Math.floor((my + camera.y) / TILE);
+
+  // Close panels
+  closeShop();
+  closeBank();
+  document.getElementById('dialogBox').style.display = 'none';
+
+  // Check for object click
+  const clickedObj = worldObjects.find(obj => obj.x === worldX && obj.y === worldY);
+  if(clickedObj) {
+    handleObjectClick(clickedObj, worldX, worldY);
+    return;
+  }
+
+  // Move player
+  player.action = null;
+  player.inCombat = false;
+  player.combatTarget = null;
+  const path = findPath(player.x, player.y, worldX, worldY);
+  if(path.length > 0) {
+    player.moveQueue = path;
+  }
+});
+
+canvas.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const worldX = Math.floor((mx + camera.x) / TILE);
+  const worldY = Math.floor((my + camera.y) / TILE);
+
+  const clickedObj = worldObjects.find(obj => obj.x === worldX && obj.y === worldY);
+  if(clickedObj) {
+    const opts = getObjectContextOptions(clickedObj);
+    showContextMenu(e.clientX, e.clientY, opts);
+  }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  mouseWorldX = Math.floor((mx + camera.x) / TILE);
+  mouseWorldY = Math.floor((my + camera.y) / TILE);
+
+  hoveredObject = worldObjects.find(obj => obj.x === mouseWorldX && obj.y === mouseWorldY && !(obj.type==='monster'&&obj.data&&obj.data.dead));
+
+  // Tooltip
+  const tooltip = document.getElementById('tooltip');
+  if(hoveredObject) {
+    let name = '', desc = '';
+    if(hoveredObject.type==='tree') {
+      const t = TREE_TYPES[hoveredObject.subtype];
+      name = t.name; desc = `Level ${t.lvl} Woodcutting`;
+    } else if(hoveredObject.type==='rock') {
+      const r = ROCK_TYPES[hoveredObject.subtype];
+      name = r.name; desc = `Level ${r.lvl} Mining`;
+    } else if(hoveredObject.type==='fish_spot') {
+      const f = FISH_TYPES[hoveredObject.subtype];
+      name = f.name+' spot'; desc = `Level ${f.lvl} Fishing`;
+    } else if(hoveredObject.type==='monster') {
+      const m = MONSTER_TYPES[hoveredObject.subtype];
+      name = m.name; desc = `Level ${m.lvl} | HP: ${hoveredObject.data.hp}/${hoveredObject.data.maxHp}`;
+    } else if(hoveredObject.type==='npc') {
+      name = NPC_TYPES[hoveredObject.subtype].name; desc = 'Right-click for options';
+    } else if(hoveredObject.type==='furnace') {
+      name = 'Furnace'; desc = 'Smelt ores into bars';
+    } else if(hoveredObject.type==='anvil') {
+      name = 'Anvil'; desc = 'Smith equipment';
+    } else if(hoveredObject.type==='range') {
+      name = 'Cooking Range'; desc = 'Cook food here';
+    }
+    if(name) {
+      tooltip.innerHTML = `<div class="tt-name">${name}</div><div class="tt-desc">${desc}</div>`;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.clientX + 12) + 'px';
+      tooltip.style.top = (e.clientY - 10) + 'px';
+    } else {
+      tooltip.style.display = 'none';
+    }
+  } else {
+    tooltip.style.display = 'none';
+  }
+});
+
+function handleObjectClick(obj, wx, wy) {
+  if(obj.type === 'tree') {
+    player.action = null;
+    player.pendingAction = {type:'chop', obj};
+    const path = findPath(player.x, player.y, obj.x, obj.y);
+    if(path.length <= 1) { startAction('chop', obj); return; }
+    player.moveQueue = path.slice(0, -1);
+  }
+  else if(obj.type === 'rock') {
+    player.pendingAction = {type:'mine', obj};
+    const path = findPath(player.x, player.y, obj.x, obj.y);
+    if(path.length <= 1) { startAction('mine', obj); return; }
+    player.moveQueue = path.slice(0, -1);
+  }
+  else if(obj.type === 'fish_spot') {
+    player.pendingAction = {type:'fish', obj};
+    const path = findPath(player.x, player.y, obj.x, obj.y);
+    if(path.length <= 1) { startAction('fish', obj); return; }
+    player.moveQueue = path.slice(0, -1);
+  }
+  else if(obj.type === 'monster') {
+    if(obj.data.dead) return;
+    player.action = null;
+    player.inCombat = true;
+    player.combatTarget = obj;
+    player.atkTimer = 1;
+    chatMsg(`You attack the ${MONSTER_TYPES[obj.subtype].name}!`,'combat');
+  }
+  else if(obj.type === 'npc') {
+    const npc = NPC_TYPES[obj.subtype];
+    // Walk to NPC first
+    const dx = Math.abs(player.x - obj.x), dy = Math.abs(player.y - obj.y);
+    if(dx > 1 || dy > 1) {
+      player.pendingAction = {type:'npc', obj};
+      const path = findPath(player.x, player.y, obj.x, obj.y);
+      if(path.length > 1) player.moveQueue = path.slice(0, -1);
+      else if(path.length === 1) player.moveQueue = path;
+      return;
+    }
+    interactNPC(obj);
+  }
+  else if(obj.type === 'furnace') {
+    smeltOre();
+  }
+  else if(obj.type === 'range') {
+    chatMsg('Use raw food from your inventory while standing next to the range.','system');
+  }
+}
+
+function interactNPC(obj) {
+  const npc = NPC_TYPES[obj.subtype];
+  if(npc.shop) {
+    openShop(obj.subtype);
+  } else if(npc.bank) {
+    openBank();
+  } else if(npc.dialog) {
+    if(obj.subtype === 'duke') questFlags.talkedDuke = true;
+    openDialog(obj.subtype);
+  }
+}
+
+function smeltOre() {
+  // Check what player can smelt
+  if(countItem('copper_ore')>0 && countItem('tin_ore')>0) {
+    removeFromInventory(findItemSlot('copper_ore'));
+    removeFromInventory(findItemSlot('tin_ore'));
+    addToInventory('bronze_bar',1);
+    gainXp('smithing',6);
+    chatMsg('You smelt a bronze bar.','skill');
+  } else if(countItem('iron_ore')>0) {
+    removeFromInventory(findItemSlot('iron_ore'));
+    if(Math.random()<0.5) {
+      addToInventory('iron_bar',1);
+      gainXp('smithing',12);
+      chatMsg('You smelt an iron bar.','skill');
+    } else {
+      chatMsg('The ore is too impure and you fail to smelt it.','system');
+    }
+  } else {
+    chatMsg('You don\'t have any ores to smelt.','system');
+  }
+  renderInventory();
+}
+
+function getObjectContextOptions(obj) {
+  const opts = [];
+  if(obj.type==='tree') {
+    const t = TREE_TYPES[obj.subtype];
+    opts.push({text:t.name,color:'#ff0',action:()=>{}});
+    opts.push({text:'Chop down',action:()=>handleObjectClick(obj)});
+    opts.push({text:'Examine',action:()=>chatMsg(`A ${t.name}. Requires level ${t.lvl} Woodcutting.`,'system')});
+  }
+  else if(obj.type==='rock') {
+    const r = ROCK_TYPES[obj.subtype];
+    opts.push({text:r.name,color:'#ff0',action:()=>{}});
+    opts.push({text:'Mine',action:()=>handleObjectClick(obj)});
+    opts.push({text:'Examine',action:()=>chatMsg(`${r.name}. Requires level ${r.lvl} Mining.`,'system')});
+  }
+  else if(obj.type==='fish_spot') {
+    opts.push({text:'Fishing spot',color:'#ff0',action:()=>{}});
+    opts.push({text:'Fish',action:()=>handleObjectClick(obj)});
+  }
+  else if(obj.type==='monster' && !obj.data.dead) {
+    const m = MONSTER_TYPES[obj.subtype];
+    opts.push({text:`${m.name} (lvl ${m.lvl})`,color:'#ff0',action:()=>{}});
+    opts.push({text:'Attack',color:'#f44',action:()=>handleObjectClick(obj)});
+    opts.push({text:'Examine',action:()=>chatMsg(`${m.name} - Level ${m.lvl}, ${obj.data.hp}/${obj.data.maxHp} HP`,'system')});
+  }
+  else if(obj.type==='npc') {
+    const n = NPC_TYPES[obj.subtype];
+    opts.push({text:n.name,color:'#ff0',action:()=>{}});
+    if(n.dialog) opts.push({text:'Talk-to',action:()=>handleObjectClick(obj)});
+    if(n.shop) opts.push({text:'Trade',action:()=>handleObjectClick(obj)});
+    if(n.bank) opts.push({text:'Bank',action:()=>handleObjectClick(obj)});
+  }
+  return opts;
+}
+
+// Chat input
+document.getElementById('chatField').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') {
+    const text = e.target.value.trim();
+    if(text) {
+      chatMsg(`You: ${text}`, 'system');
+      e.target.value = '';
+      // Easter eggs
+      if(text.toLowerCase() === '::bank') openBank();
+      else if(text.toLowerCase() === '::coords') chatMsg(`Position: ${player.x}, ${player.y}`,'system');
+      else if(text.toLowerCase() === '::save') { saveGame(); chatMsg('Game saved!','system'); }
+    }
+  }
+});
+
+// Sound toggle
+document.getElementById('soundToggle').addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
+  if(soundEnabled && !audioCtx) initAudio();
+  if(soundEnabled && !musicPlaying) startMusic();
+  if(!soundEnabled) { musicPlaying = false; }
+});
+
+// --- SAVE/LOAD ---
+function saveGame() {
+  const data = {
+    player: {
+      x: player.x, y: player.y,
+      skills: player.skills,
+      inventory: player.inventory,
+      bank: player.bank,
+      equipment: player.equipment,
+      hp: player.hp,
+      prayer: player.prayer,
+    },
+    questFlags,
+    gameTick,
+  };
+  localStorage.setItem('rs5_save', JSON.stringify(data));
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem('rs5_save');
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    player.x = data.player.x; player.y = data.player.y;
+    player.targetX = player.x; player.targetY = player.y;
+    player.fromX = player.x; player.fromY = player.y;
+    player.skills = data.player.skills;
+    player.inventory = data.player.inventory;
+    player.bank = data.player.bank || [];
+    player.equipment = data.player.equipment;
+    player.hp = data.player.hp;
+    player.maxHp = getSkillLevel('hitpoints');
+    player.prayer = data.player.prayer;
+    player.maxPrayer = getSkillLevel('prayer');
+    questFlags = data.questFlags || questFlags;
+    gameTick = data.gameTick || 0;
+    return true;
+  } catch(e) { return false; }
+}
+
+// Auto-save every 30 seconds
+setInterval(saveGame, 30000);
+
+// --- PLAYER MOVEMENT ---
+function updatePlayerMovement(dt) {
+  if(player.moveQueue.length > 0 && !player.moving) {
+    const next = player.moveQueue.shift();
+    if(isWalkable(next.x, next.y)) {
+      player.fromX = player.x;
+      player.fromY = player.y;
+      player.x = next.x;
+      player.y = next.y;
+      player.moving = true;
+      player.moveProgress = 0;
+      // Update facing
+      const dx = next.x - player.fromX;
+      const dy = next.y - player.fromY;
+      if(dy < 0) player.facing = 0;
+      else if(dx > 0) player.facing = 1;
+      else if(dy > 0) player.facing = 2;
+      else if(dx < 0) player.facing = 3;
+    } else {
+      player.moveQueue = [];
+    }
+  }
+
+  if(player.moving) {
+    player.moveProgress += dt * 4; // tiles per second
+    if(player.moveProgress >= 1) {
+      player.moveProgress = 0;
+      player.moving = false;
+      player.fromX = player.x;
+      player.fromY = player.y;
+
+      // Check pending action
+      if(player.pendingAction && player.moveQueue.length === 0) {
+        const pa = player.pendingAction;
+        player.pendingAction = null;
+        if(pa.type === 'npc') {
+          interactNPC(pa.obj);
+        } else {
+          startAction(pa.type, pa.obj);
+        }
+      }
+    }
+  }
+}
+
+// --- MAIN LOOP ---
+let lastTime = 0;
+let tickAccum = 0;
+let uiRefreshTimer = 0;
+
+function gameLoop(timestamp) {
+  const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+  lastTime = timestamp;
+
+  // Game ticks
+  tickAccum += dt * 1000;
+  while(tickAccum >= TICK_MS) {
+    tickAccum -= TICK_MS;
+    doGameTick();
+  }
+
+  // Player movement (smooth, independent of ticks)
+  updatePlayerMovement(dt);
+
+  // Render
+  render();
+
+  // UI refresh every 500ms
+  uiRefreshTimer += dt;
+  if(uiRefreshTimer > 0.5) {
+    uiRefreshTimer = 0;
+    refreshPanel();
+    updateTopBar();
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+function updateTopBar() {
+  document.getElementById('hpText').textContent = `${player.hp}/${player.maxHp}`;
+  document.getElementById('hpBar').style.width = (player.hp/player.maxHp*100)+'%';
+  document.getElementById('prayText').textContent = `${player.prayer}/${player.maxPrayer}`;
+  document.getElementById('prayBar').style.width = (player.prayer/player.maxPrayer*100)+'%';
+  document.getElementById('runText').textContent = Math.floor(player.runEnergy)+'%';
+  document.getElementById('runBar').style.width = player.runEnergy+'%';
+  document.getElementById('totalLevel').textContent = getTotalLevel();
+  document.getElementById('coinDisplay').textContent = countItem('coins').toLocaleString();
+}
+
+// Track quest progress via proxied actions
+const origKillMonster = killMonster;
+// Override to track quests - already inline above, add quest tracking
+const origGainXp = gainXp;
+
+// --- LOADING SCREEN ---
+async function startGame() {
+  const fill = document.getElementById('loadFill');
+  const text = document.getElementById('loadText');
+
+  text.textContent = 'Generating world...';
+  fill.style.width = '10%';
+  await sleep(200);
+
+  generateWorld();
+  fill.style.width = '30%';
+  text.textContent = 'Loading player data...';
+  await sleep(200);
+
+  const loaded = loadGame();
+  if(!loaded) initPlayer();
+  fill.style.width = '50%';
+  text.textContent = 'Preparing interface...';
+  await sleep(200);
+
+  resizeCanvas();
+  camera.x = player.x * TILE - canvas.width/2;
+  camera.y = player.y * TILE - canvas.height/2;
+  fill.style.width = '70%';
+  text.textContent = 'Initializing audio...';
+  await sleep(200);
+
+  fill.style.width = '90%';
+  text.textContent = 'Welcome to RuneScape 5!';
+  await sleep(300);
+
+  fill.style.width = '100%';
+  await sleep(500);
+
+  document.getElementById('loadingScreen').style.opacity = '0';
+  setTimeout(() => {
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('gameContainer').style.display = 'flex';
+    resizeCanvas();
+
+    // Initial UI render
+    refreshPanel();
+    updateTopBar();
+
+    chatMsg('🔥 Welcome to RuneScape 5! 🔥','levelup');
+    chatMsg('Click on the world to move. Click objects to interact.','system');
+    chatMsg('Talk to Duke Horacio in the castle to start your adventure!','quest');
+    chatMsg('Right-click for more options. Your game auto-saves every 30 seconds.','system');
+
+    // Start game loop
+    requestAnimationFrame(gameLoop);
+
+    // Track first actions for quests
+    const origComplete = completeAction;
+  }, 600);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Patch completeAction for quest tracking
+const _origComplete = completeAction;
+// We already define completeAction above, so let's add quest hooks differently
+// We'll check quest flags in the UI refresh
+
+// Patch: track kills
+const _origKill = killMonster;
+// killMonster is already defined - add quest tracking inline
+// Let's use a simpler approach: check in the tick
+
+// Actually let's just wrap the key functions
+(function patchForQuests() {
+  const origGXP = gainXp;
+  // Already tracked via flag checks in renderQuests - getTotalLevel() >= 50 is live
+  // For kills and skilling, let's add quest flag updates in doGameTick
+})();
+
+// Override killMonster to track quests
+const __origKillMonster = killMonster;
+// Can't reassign since it's a function declaration. Let's track kills differently.
+// We'll use a global kill counter
+let totalKills = 0;
+
+// Monkey-patch by redefining
+const origKillMonsterFn = window.killMonster;
+
+// Simpler: just check in the game tick
+setInterval(() => {
+  if(totalKills > 0) questFlags.firstKill = true;
+  if(player.skills.woodcutting.xp > 0) questFlags.firstChop = true;
+  if(player.skills.mining.xp > 0) questFlags.firstMine = true;
+  if(player.skills.fishing.xp > 0) questFlags.firstFish = true;
+}, 2000);
+
+// Track kills in the killMonster function - add to the chat message check
+// We'll just increment totalKills when we see combat chat messages
+const origChatMsg = chatMsg;
+chatMsg = function(text, cls) {
+  origChatMsg(text, cls);
+  if(text.startsWith('You killed')) { totalKills++; questFlags.firstKill = true; }
+  if(text.includes('Dragon') && text.startsWith('You killed')) questFlags.dragonSlain = true;
+};
+
+// Mobile touch support
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  if(!audioCtx) initAudio();
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const mx = touch.clientX - rect.left;
+  const my = touch.clientY - rect.top;
+  const worldX = Math.floor((mx + camera.x) / TILE);
+  const worldY = Math.floor((my + camera.y) / TILE);
+
+  const clickedObj = worldObjects.find(obj => obj.x === worldX && obj.y === worldY);
+  if(clickedObj) {
+    handleObjectClick(clickedObj, worldX, worldY);
+    return;
+  }
+  player.action = null;
+  player.inCombat = false;
+  player.combatTarget = null;
+  const path = findPath(player.x, player.y, worldX, worldY);
+  if(path.length > 0) player.moveQueue = path;
+}, {passive: false});
+
+// Start!
+startGame();
+</script>
+</body>
+</html>
